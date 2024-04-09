@@ -405,7 +405,7 @@ def main(argv):
             # VALIDATION
             # ---------------------------------------------------------------------
 
-            if (epoch_cnt > 0 and epoch_cnt % params['eval_freq'] == 0) or epoch_cnt == nb_epochs-1:
+            if (epoch_cnt > 0 and epoch_cnt % params['eval_freq'] == 0) or epoch_cnt == nb_epoch-1:
                 start_time = time.time()
                 val_loss = test_epoch(data_gen_val, model, criterion, dcase_output_val_folder, params, device)
                 # Calculate the DCASE 2021 metrics - Location-aware detection and Class-aware localization scores
