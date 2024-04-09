@@ -12,6 +12,7 @@ import parameters
 import time
 from time import gmtime, strftime
 import torch
+import torchaudio
 import torch.nn as nn
 import torch.optim as optim
 plot.switch_backend('agg')
@@ -180,16 +181,31 @@ def test_epoch(data_generator, model, criterion, dcase_output_folder, params, de
 def train_epoch(data_generator, optimizer, model, criterion, params, device):
     nb_train_batches, train_loss = 0, 0.
     model.train()
+
+    train_transform = torch.nn.Sequential(
+            torchaudio.transforms.FrequencyMasking(7, iid_masks=True),
+            torchaudio.transforms.FrequencyMasking(7, iid_masks=True),
+    )
+
     for values in data_generator.generate():
         # load one batch of data
         if len(values) == 2:
             data, target = values
             data, target = torch.tensor(data).to(device).float(), torch.tensor(target).to(device).float()
+            if params['specaugment']:
+                spec = data[:, :params['n_mics']].permute(0, 1, 3, 2)
+                data[:, :params['n_mics']] = train_transform(spec).permute(0, 1, 3, 2)
+            
             optimizer.zero_grad()
             output = model(data)
         elif len(values) == 3:
             data, vid_feat, target = values
             data, vid_feat, target = torch.tensor(data).to(device).float(), torch.tensor(vid_feat).to(device).float(), torch.tensor(target).to(device).float()
+            
+            if params['specaugment']:
+                spec = data[:, :params['n_mics']].permute(0, 1, 3, 2)
+                data[:, :params['n_mics']] = train_transform(spec).permute(0, 1, 3, 2)
+
             optimizer.zero_grad()
             output = model(data, vid_feat)
 

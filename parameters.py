@@ -67,6 +67,7 @@ def get_params(argv='1'):
         lr=1e-3,
         final_lr=1e-5, # final learning rate in cosine scheduler
         weight_decay=0.0,
+        specaugment=False,
 
         # METRIC
         average='macro',                 # Supports 'micro': sample-wise average and 'macro': class-wise average,
@@ -114,6 +115,7 @@ def get_params(argv='1'):
         params['dataset'] = 'mic'
         params['use_salsalite'] = False
         params['multi_accdoa'] = True
+        params['n_mics'] = 4
 
     elif argv == '7':
         print("MIC + SALSA + multi ACCDOA\n")
