@@ -296,9 +296,7 @@ class MySeldModel(torch.nn.Module):
         gcc = torch.cat((gcc, mic_tokens), dim=-1)
 
         gcc = self.rel2(gcc)
-        print(gcc.shape)
         gcc = torch.max(gcc, dim=1)[0]
-        print(gcc.shape)
         gcc = self.rel3(gcc)
 
         x = torch.cat((x, gcc), dim=-1)
