@@ -303,19 +303,31 @@ def main(argv):
         )
 
         # Collect i/o data size and load model configuration
-        if params['modality'] == 'audio_visual':
-            data_in, vid_data_in, data_out = data_gen_train.get_data_sizes()
-            model = seldnet_model.SeldModel(data_in, data_out, params, vid_data_in).to(device)
-        else:
-            data_in, data_out = data_gen_train.get_data_sizes()
-            model = seldnet_model.SeldModel(data_in, data_out, params).to(device)
-
-        if params['finetune_mode']:
-            print('Running in finetuning mode. Initializing the model to the weights - {}'.format(params['pretrained_model_weights']))
-            state_dict = torch.load(params['pretrained_model_weights'], map_location='cpu')
+        if params['model'] == 'seldnet':
             if params['modality'] == 'audio_visual':
-                state_dict = {k: v for k, v in state_dict.items() if 'fnn' not in k}
-            model.load_state_dict(state_dict, strict=False)
+                data_in, vid_data_in, data_out = data_gen_train.get_data_sizes()
+                model = seldnet_model.SeldModel(data_in, data_out, params, vid_data_in).to(device)
+            else:
+                data_in, data_out = data_gen_train.get_data_sizes()
+                model = seldnet_model.SeldModel(data_in, data_out, params).to(device)
+
+            if params['finetune_mode']:
+                print('Running in finetuning mode. Initializing the model to the weights - {}'.format(params['pretrained_model_weights']))
+                state_dict = torch.load(params['pretrained_model_weights'], map_location='cpu')
+                if params['modality'] == 'audio_visual':
+                    state_dict = {k: v for k, v in state_dict.items() if 'fnn' not in k}
+                model.load_state_dict(state_dict, strict=False)
+        elif params['model'] == 'myseldnet':
+            if params['modality'] == 'audio_visual':
+                data_in, vid_data_in, data_out = data_gen_train.get_data_sizes()
+                model = seldnet_model.SeldModel(data_in, data_out, params, vid_data_in).to(device)
+            else:
+                data_in, data_out = data_gen_train.get_data_sizes()
+                model = seldnet_model.MySeldModel(data_in, data_out, params).to(device)
+        else:
+            print('ERROR: Unknown model configuration')
+            exit()
+
 
         print('---------------- SELD-net -------------------')
         print('FEATURES:\n\tdata_in: {}\n\tdata_out: {}\n'.format(data_in, data_out))

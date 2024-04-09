@@ -15,18 +15,18 @@ def get_params(argv='1'):
 
         # INPUT PATH
         # dataset_dir='DCASE2020_SELD_dataset/',  # Base folder containing the foa/mic and metadata folders
-        dataset_dir='../DCASE2024_SELD_dataset/',
+        dataset_dir='./data_2024/',
 
         # OUTPUT PATHS
         # feat_label_dir='DCASE2020_SELD_dataset/feat_label_hnet/',  # Directory to dump extracted features and labels
-        feat_label_dir='../DCASE2024_SELD_dataset/seld_feat_label/',
+        feat_label_dir='./data_2024/seld_feat_label/',
 
         model_dir='models',  # Dumps the trained models and training curves in this folder
         dcase_output_dir='results',  # recording-wise results are dumped in this path.
 
         # DATASET LOADING PARAMETERS
         mode='dev',  # 'dev' - development or 'eval' - evaluation dataset
-        dataset='foa',  # 'foa' - ambisonic or 'mic' - microphone signals
+        dataset='mic',  # 'foa' - ambisonic or 'mic' - microphone signals
 
         # FEATURE PARAMS
         fs=24000,
@@ -41,6 +41,7 @@ def get_params(argv='1'):
         fmax_spectra_salsalite=9000,
 
         # MODEL TYPE
+        model = 'myseldnet',
         modality='audio',  # 'audio' or 'audio_visual'
         multi_accdoa=False,  # False - Single-ACCDOA or True - Multi-ACCDOA
         thresh_unify=15,    # Required for Multi-ACCDOA only. Threshold of unification for inference in degrees.

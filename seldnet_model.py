@@ -182,3 +182,136 @@ class SeldModel(torch.nn.Module):
 
         doa2 = doa2.reshape((doa.size(0), doa.size(1), -1))
         return doa2
+    
+class MySeldModel(torch.nn.Module):
+    def __init__(self, in_feat_shape, out_shape, params, in_vid_feat_shape=None, n_channels=4, n_delays=None):
+        super().__init__()
+        self.n_channels = n_channels
+        self.nb_classes = params['unique_classes']
+        self.params=params
+        self.conv_block_list = nn.ModuleList()
+        if len(params['f_pool_size']):
+            for conv_cnt in range(len(params['f_pool_size'])):
+                self.conv_block_list.append(ConvBlock(in_channels=params['nb_cnn2d_filt'] if conv_cnt else n_channels, out_channels=params['nb_cnn2d_filt']))
+                self.conv_block_list.append(nn.MaxPool2d((params['t_pool_size'][conv_cnt], params['f_pool_size'][conv_cnt])))
+                self.conv_block_list.append(nn.Dropout2d(p=params['dropout_rate']))
+
+        self.gru_input_dim = params['nb_cnn2d_filt'] * int(np.floor(in_feat_shape[-1] / np.prod(params['f_pool_size'])))
+        self.gru = torch.nn.GRU(input_size=self.gru_input_dim, hidden_size=params['rnn_size'],
+                                num_layers=params['nb_rnn_layers'], batch_first=True,
+                                dropout=params['dropout_rate'], bidirectional=True)
+
+        self.mhsa_block_list = nn.ModuleList()
+        self.layer_norm_list = nn.ModuleList()
+        for mhsa_cnt in range(params['nb_self_attn_layers']):
+            self.mhsa_block_list.append(nn.MultiheadAttention(embed_dim=self.params['rnn_size'], num_heads=self.params['nb_heads'], dropout=self.params['dropout_rate'], batch_first=True))
+            self.layer_norm_list.append(nn.LayerNorm(self.params['rnn_size']))
+
+        # fusion layers
+        if in_vid_feat_shape is not None:
+            self.visual_embed_to_d_model = nn.Linear(in_features = int(in_vid_feat_shape[2]*in_vid_feat_shape[3]), out_features = self.params['rnn_size'] )
+            self.transformer_decoder_layer = nn.TransformerDecoderLayer(d_model=self.params['rnn_size'], nhead=self.params['nb_heads'], batch_first=True)
+            self.transformer_decoder = nn.TransformerDecoder(self.transformer_decoder_layer, num_layers=self.params['nb_transformer_layers'])
+
+        # GCC-PHAT relation network
+        self.mic_token_dim = 8
+        self.n_gcc = int(n_channels * (n_channels - 1) / 2)
+        self.mic_tokens = nn.Parameter(torch.randn(1, self.n_gcc, 1, self.mic_token_dim))
+
+        self.n_gcc = n_channels * (n_channels - 1) / 2
+        if n_delays is None:
+            n_delays = in_feat_shape[-1]  # this is currently = 64. TODO: 2*6=12 delays per correlation
+        self.rel1 = nn.Sequential(
+            nn.Linear(n_delays, n_delays * 8),
+            nn.LayerNorm(n_delays * 8),
+            nn.GELU(),
+            nn.Linear(n_delays * 8, n_delays * 16),
+            nn.LayerNorm(n_delays * 16),
+            nn.GELU(),
+        )
+
+        self.avg_pool = nn.AvgPool2d((params['t_pool_size'][0], 1)) # pool over 5 time samples, (5,1)
+
+        self.rel2 = nn.Sequential(
+            nn.Linear(n_delays * 16 +  self.mic_token_dim, n_delays * 32),
+            nn.LayerNorm(n_delays * 32),
+            nn.GELU(),
+            nn.Linear(n_delays * 32, n_delays * 64),
+            nn.LayerNorm(n_delays * 64),
+            nn.GELU(),
+        )
+
+        self.rel3 = nn.Sequential(
+            nn.Linear(n_delays * 64, n_delays * 64),
+            nn.LayerNorm(n_delays * 64),
+            nn.GELU(),
+        )
+
+        #fully connected for predictions
+        self.ff = nn.Sequential(
+            nn.Linear(self.params['rnn_size']+n_delays*64, 256),
+            nn.LayerNorm(256),
+            nn.GELU(),
+            nn.Linear(256, out_shape[-1])
+        )
+
+        self.doa_act = nn.Tanh()
+        self.dist_act = nn.ReLU()
+
+
+    def forward(self, x, vid_feat=None):
+        """input: (batch_size, mic_channels, time_steps, mel_bins)"""
+
+        # separate gcc and mel features
+        gcc = x[:, self.n_channels:] # gcc correlations
+        x = x[:, :self.n_channels] # mel spectrograms
+
+        for conv_cnt in range(len(self.conv_block_list)):
+            x = self.conv_block_list[conv_cnt](x)
+
+        x = x.transpose(1, 2).contiguous()
+        x = x.view(x.shape[0], x.shape[1], -1).contiguous()
+        (x, _) = self.gru(x)
+        x = torch.tanh(x)
+        x = x[:, :, x.shape[-1]//2:] * x[:, :, :x.shape[-1]//2]
+
+        for mhsa_cnt in range(len(self.mhsa_block_list)):
+            x_attn_in = x
+            x, _ = self.mhsa_block_list[mhsa_cnt](x_attn_in, x_attn_in, x_attn_in)
+            x = x + x_attn_in
+            x = self.layer_norm_list[mhsa_cnt](x)
+
+        if vid_feat is not None:
+            vid_feat = vid_feat.view(vid_feat.shape[0], vid_feat.shape[1], -1)  # b x 50 x 49
+            vid_feat = self.visual_embed_to_d_model(vid_feat)
+            x = self.transformer_decoder(x, vid_feat)
+
+        # relation network
+        gcc = self.rel1(gcc)
+        gcc = self.avg_pool(gcc)
+        
+        # append mic tokens to gcc features
+        bs, _, n_time, _ = gcc.shape
+        mic_tokens = self.mic_tokens.repeat(bs, 1, n_time, 1) 
+        gcc = torch.cat((gcc, mic_tokens), dim=-1)
+
+        gcc = self.rel2(gcc)
+        print(gcc.shape)
+        gcc = torch.max(gcc, dim=1)[0]
+        print(gcc.shape)
+        gcc = self.rel3(gcc)
+
+        x = torch.cat((x, gcc), dim=-1)
+
+        doa = self.ff(x)
+
+        doa = doa.reshape(doa.size(0), doa.size(1), 3, 4, 13)
+        doa1 = doa[:, :, :, :3, :]
+        dist = doa[:, :, :, 3:, :]
+
+        doa1 = self.doa_act(doa1)
+        dist = self.dist_act(dist)
+        doa2 = torch.cat((doa1, dist), dim=3)
+
+        doa2 = doa2.reshape((doa.size(0), doa.size(1), -1))
+        return doa2
