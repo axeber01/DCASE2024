@@ -350,7 +350,23 @@ def main(argv):
         patience_cnt = 0
 
         nb_epoch = 2 if params['quick_test'] else params['nb_epochs']
-        optimizer = optim.Adam(model.parameters(), lr=params['lr'])
+
+        model_parameters = [
+            (name, p) for (name, p) in model.named_parameters() if not name.startswith('q')]
+        no_decay = ['bias', 'norm', 'Norm', 'cls', 'pos']
+        # Apply weight decay to all layers, except biases, normalization layers and and learnable tokens
+        optimizer_grouped_parameters = [
+        {'params': [p for n, p in model_parameters if not any(
+            nd in n for nd in no_decay)], 'weight_decay': params['weight_decay']},
+        {'params': [p for n, p in model_parameters if any(
+            nd in n for nd in no_decay)], 'weight_decay': 0.0}
+        ]
+
+        optimizer = optim.AdamW(optimizer_grouped_parameters, lr=params['lr'])
+
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(
+                        optimizer, T_max=nb_epoch, eta_min=params['final_lr'])
+
         if params['multi_accdoa'] is True:
             criterion = seldnet_model.MSELoss_ADPIT()
         else:
@@ -362,6 +378,7 @@ def main(argv):
             # ---------------------------------------------------------------------
             start_time = time.time()
             train_loss = train_epoch(data_gen_train, optimizer, model, criterion, params, device)
+            scheduler.step()
             train_time = time.time() - start_time
             # ---------------------------------------------------------------------
             # VALIDATION

@@ -65,6 +65,8 @@ def get_params(argv='1'):
 
         nb_epochs=250,  # Train for maximum epochs
         lr=1e-3,
+        final_lr=1e-5, # final learning rate in cosine scheduler
+        weight_decay=0.0,
 
         # METRIC
         average='macro',                 # Supports 'micro': sample-wise average and 'macro': class-wise average,
