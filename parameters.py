@@ -64,6 +64,7 @@ def get_params(argv='1'):
         fnn_size=128,  # FNN contents, length of list = number of layers, list value = number of nodes
 
         nb_epochs=250,  # Train for maximum epochs
+        eval_freq=50, # evaluate every x epochs
         lr=1e-3,
         final_lr=1e-5, # final learning rate in cosine scheduler
         weight_decay=0.0,

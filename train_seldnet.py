@@ -388,6 +388,11 @@ def main(argv):
         else:
             criterion = nn.MSELoss()
 
+        # initialize validation scores to nan
+        val_ER, val_F, val_LE, val_dist_err, val_rel_dist_err, val_LR, val_seld_scr, classwise_val_scr = np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan
+        val_time = np.nan
+        val_loss = np.nan
+
         for epoch_cnt in range(nb_epoch):
             # ---------------------------------------------------------------------
             # TRAINING
@@ -400,23 +405,23 @@ def main(argv):
             # VALIDATION
             # ---------------------------------------------------------------------
 
+            if (epoch_cnt > 0 and epoch_cnt % params['eval_freq'] == 0) or epoch_cnt == nb_epochs-1:
+                start_time = time.time()
+                val_loss = test_epoch(data_gen_val, model, criterion, dcase_output_val_folder, params, device)
+                # Calculate the DCASE 2021 metrics - Location-aware detection and Class-aware localization scores
 
-            start_time = time.time()
-            val_loss = test_epoch(data_gen_val, model, criterion, dcase_output_val_folder, params, device)
-            # Calculate the DCASE 2021 metrics - Location-aware detection and Class-aware localization scores
+                val_ER, val_F, val_LE, val_dist_err, val_rel_dist_err, val_LR, val_seld_scr, classwise_val_scr = score_obj.get_SELD_Results(dcase_output_val_folder)
 
-            val_ER, val_F, val_LE, val_dist_err, val_rel_dist_err, val_LR, val_seld_scr, classwise_val_scr = score_obj.get_SELD_Results(dcase_output_val_folder)
+                val_time = time.time() - start_time
 
-            val_time = time.time() - start_time
-
-            # Save model if F-score is good
-            if val_F >= best_F:
-                best_val_epoch, best_ER, best_F, best_LE, best_LR, best_seld_scr, best_dist_err = epoch_cnt, val_ER, val_F, val_LE, val_LR, val_seld_scr, val_dist_err
-                best_rel_dist_err = val_rel_dist_err
-                torch.save(model.state_dict(), model_name)
-                patience_cnt = 0
-            else:
-                patience_cnt += 1
+                # Save model if F-score is good
+                if val_F >= best_F:
+                    best_val_epoch, best_ER, best_F, best_LE, best_LR, best_seld_scr, best_dist_err = epoch_cnt, val_ER, val_F, val_LE, val_LR, val_seld_scr, val_dist_err
+                    best_rel_dist_err = val_rel_dist_err
+                    torch.save(model.state_dict(), model_name)
+                    patience_cnt = 0
+                else:
+                    patience_cnt += params['eval_freq']
 
             # Print stats
             print(
