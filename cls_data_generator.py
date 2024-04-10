@@ -17,7 +17,11 @@ class DataGenerator(object):
         self._per_file = per_file
         self._is_eval = is_eval
         self._splits = np.array(split)
-        self._batch_size = params['batch_size']
+        if per_file:
+            self._batch_size = params['eval_batch_size']
+        else:
+            self._batch_size = params['batch_size']
+        
         self._feature_seq_len = params['feature_sequence_length']
         self._label_seq_len = params['label_sequence_length']
         self._shuffle = shuffle

@@ -10,23 +10,22 @@ def get_params(argv='1'):
     params = dict(
         quick_test=True,  # To do quick test. Trains/test on small subset of dataset, and # of epochs
 
-        finetune_mode=True,  # Finetune on existing model, requires the pretrained model path set - pretrained_model_weights
+        finetune_mode=False,  # Finetune on existing model, requires the pretrained model path set - pretrained_model_weights
         pretrained_model_weights='3_1_dev_split0_multiaccdoa_foa_model.h5',
 
         # INPUT PATH
-        # dataset_dir='DCASE2020_SELD_dataset/',  # Base folder containing the foa/mic and metadata folders
-        dataset_dir='../DCASE2024_SELD_dataset/',
+        dataset_dir='./data_2024/',  # Base folder containing the foa/mic and metadata folders
 
         # OUTPUT PATHS
-        # feat_label_dir='DCASE2020_SELD_dataset/feat_label_hnet/',  # Directory to dump extracted features and labels
-        feat_label_dir='../DCASE2024_SELD_dataset/seld_feat_label/',
+        feat_label_dir='./data_2024/seld_feat_label/',  # Directory to dump extracted features and labels
 
         model_dir='models',  # Dumps the trained models and training curves in this folder
         dcase_output_dir='results',  # recording-wise results are dumped in this path.
 
         # DATASET LOADING PARAMETERS
         mode='dev',  # 'dev' - development or 'eval' - evaluation dataset
-        dataset='foa',  # 'foa' - ambisonic or 'mic' - microphone signals
+        dataset='mic',  # 'foa' - ambisonic or 'mic' - microphone signals
+        eval_frequency=50,
 
         # FEATURE PARAMS
         fs=24000,
@@ -48,6 +47,7 @@ def get_params(argv='1'):
         # DNN MODEL PARAMETERS
         label_sequence_length=50,    # Feature sequence length
         batch_size=128,              # Batch size
+        eval_batch_size=128
         dropout_rate=0.05,           # Dropout rate, constant for all layers
         nb_cnn2d_filt=64,           # Number of CNN nodes, constant for each layer
         f_pool_size=[4, 4, 2],      # CNN frequency pooling, length of list = number of CNN layers, list value = pooling per layer
