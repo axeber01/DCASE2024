@@ -257,6 +257,16 @@ def main(argv):
 
     job_id = 1 if len(argv) < 3 else argv[-1]
 
+    if not os.path.exists('logs'):
+        os.makedirs('logs')
+    
+    LOG_FOUT = open(os.path.join('logs/', job_id+'.txt'), 'w')
+
+    def log_string(out_str):
+        LOG_FOUT.write(out_str+'\n')
+        LOG_FOUT.flush()
+        print(out_str, flush=True)
+
     # Training setup
     train_splits, val_splits, test_splits = None, None, None
     if params['mode'] == 'dev':
@@ -284,12 +294,12 @@ def main(argv):
             train_splits = [[3]]
 
         else:
-            print('ERROR: Unknown dataset splits')
+            log_string('ERROR: Unknown dataset splits')
             exit()
     for split_cnt, split in enumerate(test_splits):
-        print('\n\n---------------------------------------------------------------------------------------------------')
-        print('------------------------------------      SPLIT {}   -----------------------------------------------'.format(split))
-        print('---------------------------------------------------------------------------------------------------')
+        log_string('\n\n---------------------------------------------------------------------------------------------------')
+        log_string('------------------------------------      SPLIT {}   -----------------------------------------------'.format(split))
+        log_string('---------------------------------------------------------------------------------------------------')
 
         # Unique name for the run
         loc_feat = params['dataset']
@@ -305,15 +315,15 @@ def main(argv):
             task_id, job_id, params['mode'], split_cnt, loc_output, loc_feat
         )
         model_name = '{}_model.h5'.format(os.path.join(params['model_dir'], unique_name))
-        print("unique_name: {}\n".format(unique_name))
+        log_string("unique_name: {}\n".format(unique_name))
 
         # Load train and validation data
-        print('Loading training dataset:')
+        log_string('Loading training dataset:')
         data_gen_train = cls_data_generator.DataGenerator(
             params=params, split=train_splits[split_cnt]
         )
 
-        print('Loading validation dataset:')
+        log_string('Loading validation dataset:')
         data_gen_val = cls_data_generator.DataGenerator(
             params=params, split=val_splits[split_cnt], shuffle=False, per_file=True
         )
@@ -328,7 +338,7 @@ def main(argv):
                 model = seldnet_model.SeldModel(data_in, data_out, params).to(device)
 
             if params['finetune_mode']:
-                print('Running in finetuning mode. Initializing the model to the weights - {}'.format(params['pretrained_model_weights']))
+                log_string('Running in finetuning mode. Initializing the model to the weights - {}'.format(params['pretrained_model_weights']))
                 state_dict = torch.load(params['pretrained_model_weights'], map_location='cpu')
                 if params['modality'] == 'audio_visual':
                     state_dict = {k: v for k, v in state_dict.items() if 'fnn' not in k}
@@ -345,9 +355,9 @@ def main(argv):
             exit()
 
 
-        print('---------------- SELD-net -------------------')
-        print('FEATURES:\n\tdata_in: {}\n\tdata_out: {}\n'.format(data_in, data_out))
-        print('MODEL:\n\tdropout_rate: {}\n\tCNN: nb_cnn_filt: {}, f_pool_size{}, t_pool_size{}\n, rnn_size: {}\n, nb_attention_blocks: {}\n, fnn_size: {}\n'.format(
+        log_string('---------------- SELD-net -------------------')
+        log_string('FEATURES:\n\tdata_in: {}\n\tdata_out: {}\n'.format(data_in, data_out))
+        log_string('MODEL:\n\tdropout_rate: {}\n\tCNN: nb_cnn_filt: {}, f_pool_size{}, t_pool_size{}\n, rnn_size: {}\n, nb_attention_blocks: {}\n, fnn_size: {}\n'.format(
             params['dropout_rate'], params['nb_cnn2d_filt'], params['f_pool_size'], params['t_pool_size'], params['rnn_size'], params['nb_self_attn_layers'],
             params['fnn_size']))
         print(model)
@@ -355,7 +365,7 @@ def main(argv):
         # Dump results in DCASE output format for calculating final scores
         dcase_output_val_folder = os.path.join(params['dcase_output_dir'], '{}_{}_val'.format(unique_name, strftime("%Y%m%d%H%M%S", gmtime())))
         cls_feature_class.delete_and_create_folder(dcase_output_val_folder)
-        print('Dumping recording-wise val results in: {}'.format(dcase_output_val_folder))
+        log_string('Dumping recording-wise val results in: {}'.format(dcase_output_val_folder))
 
         # Initialize evaluation metric class
         score_obj = ComputeSELDResults(params)
@@ -411,7 +421,9 @@ def main(argv):
                 # Calculate the DCASE 2021 metrics - Location-aware detection and Class-aware localization scores
 
                 val_ER, val_F, val_LE, val_dist_err, val_rel_dist_err, val_LR, val_seld_scr, classwise_val_scr = score_obj.get_SELD_Results(dcase_output_val_folder)
+                val_ER, val_F, val_LE, val_dist_err, val_rel_dist_err, val_LR, val_seld_scr, classwise_val_scr = score_obj.get_SELD_Results(dcase_output_val_folder)
 
+                val_time = time.time() - start_time
                 val_time = time.time() - start_time
 
                 # Save model if F-score is good
@@ -424,7 +436,7 @@ def main(argv):
                     patience_cnt += params['eval_freq']
 
             # Print stats
-            print(
+            log_string(
                 'epoch: {}, time: {:0.2f}/{:0.2f}, '
                 'train_loss: {:0.4f}, val_loss: {:0.4f}, '
                 'F/AE/Dist_err/Rel_dist_err/SELD: {}, '
@@ -442,18 +454,18 @@ def main(argv):
         # ---------------------------------------------------------------------
         # Evaluate on unseen test data
         # ---------------------------------------------------------------------
-        print('Load best model weights')
+        log_string('Load best model weights')
         model.load_state_dict(torch.load(model_name, map_location='cpu'))
 
-        print('Loading unseen test dataset:')
+        log_string('Loading unseen test dataset:')
         data_gen_test = cls_data_generator.DataGenerator(
-            params=params, split=test_splits[split_cnt], shuffle=False, per_file=True
+            params=params, split=test_splits[split_cnt], shuffle=False, per_file=True,
         )
 
         # Dump results in DCASE output format for calculating final scores
         dcase_output_test_folder = os.path.join(params['dcase_output_dir'], '{}_{}_test'.format(unique_name, strftime("%Y%m%d%H%M%S", gmtime())))
         cls_feature_class.delete_and_create_folder(dcase_output_test_folder)
-        print('Dumping recording-wise test results in: {}'.format(dcase_output_test_folder))
+        log_string('Dumping recording-wise test results in: {}'.format(dcase_output_test_folder))
 
 
         test_loss = test_epoch(data_gen_test, model, criterion, dcase_output_test_folder, params, device)
@@ -461,17 +473,17 @@ def main(argv):
         use_jackknife=True
         test_ER, test_F, test_LE, test_dist_err, test_rel_dist_err, test_LR, test_seld_scr, classwise_test_scr = score_obj.get_SELD_Results(dcase_output_test_folder, is_jackknife=use_jackknife )
 
-        print('SELD score (early stopping metric): {:0.2f} {}'.format(test_seld_scr[0] if use_jackknife else test_seld_scr, '[{:0.2f}, {:0.2f}]'.format(test_seld_scr[1][0], test_seld_scr[1][1]) if use_jackknife else ''))
-        print('SED metrics: F-score: {:0.1f} {}'.format(100* test_F[0]  if use_jackknife else 100* test_F, '[{:0.2f}, {:0.2f}]'.format(100* test_F[1][0], 100* test_F[1][1]) if use_jackknife else ''))
-        print('DOA metrics: Angular error: {:0.1f} {}'.format(test_LE[0] if use_jackknife else test_LE, '[{:0.2f} , {:0.2f}]'.format(test_LE[1][0], test_LE[1][1]) if use_jackknife else ''))
-        print('Distance metrics: {:0.2f} {}'.format(test_dist_err[0] if use_jackknife else test_dist_err, '[{:0.2f} , {:0.2f}]'.format(test_dist_err[1][0], test_dist_err[1][1]) if use_jackknife else ''))
-        print('Relative Distance metrics: {:0.2f} {}'.format(test_rel_dist_err[0] if use_jackknife else test_rel_dist_err, '[{:0.2f} , {:0.2f}]'.format(test_rel_dist_err[1][0], test_rel_dist_err[1][1]) if use_jackknife else ''))
+        log_string('SELD score (early stopping metric): {:0.2f} {}'.format(test_seld_scr[0] if use_jackknife else test_seld_scr, '[{:0.2f}, {:0.2f}]'.format(test_seld_scr[1][0], test_seld_scr[1][1]) if use_jackknife else ''))
+        log_string('SED metrics: F-score: {:0.1f} {}'.format(100* test_F[0]  if use_jackknife else 100* test_F, '[{:0.2f}, {:0.2f}]'.format(100* test_F[1][0], 100* test_F[1][1]) if use_jackknife else ''))
+        log_string('DOA metrics: Angular error: {:0.1f} {}'.format(test_LE[0] if use_jackknife else test_LE, '[{:0.2f} , {:0.2f}]'.format(test_LE[1][0], test_LE[1][1]) if use_jackknife else ''))
+        log_string('Distance metrics: {:0.2f} {}'.format(test_dist_err[0] if use_jackknife else test_dist_err, '[{:0.2f} , {:0.2f}]'.format(test_dist_err[1][0], test_dist_err[1][1]) if use_jackknife else ''))
+        log_string('Relative Distance metrics: {:0.2f} {}'.format(test_rel_dist_err[0] if use_jackknife else test_rel_dist_err, '[{:0.2f} , {:0.2f}]'.format(test_rel_dist_err[1][0], test_rel_dist_err[1][1]) if use_jackknife else ''))
 
         if params['average']=='macro':
-            print('Classwise results on unseen test data')
-            print('Class\tF\tAE\tdist_err\treldist_err\tSELD_score')
+            log_string('Classwise results on unseen test data')
+            log_string('Class\tF\tAE\tdist_err\treldist_err\tSELD_score')
             for cls_cnt in range(params['unique_classes']):
-                print('{}\t{:0.2f} {}\t{:0.2f} {}\t{:0.2f} {}\t{:0.2f} {}\t{:0.2f} {}'.format(
+                log_string('{}\t{:0.2f} {}\t{:0.2f} {}\t{:0.2f} {}\t{:0.2f} {}\t{:0.2f} {}'.format(
                     cls_cnt,
 
                     classwise_test_scr[0][1][cls_cnt] if use_jackknife else classwise_test_scr[1][cls_cnt],
@@ -491,6 +503,8 @@ def main(argv):
                     '[{:0.2f}, {:0.2f}]'.format(classwise_test_scr[1][6][cls_cnt][0],
                                                 classwise_test_scr[1][6][cls_cnt][1]) if use_jackknife else ''))
 
+    LOG_FOUT.close()
+                    
 if __name__ == "__main__":
     try:
         sys.exit(main(sys.argv))
