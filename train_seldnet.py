@@ -337,12 +337,6 @@ def main(argv):
                 data_in, data_out = data_gen_train.get_data_sizes()
                 model = seldnet_model.SeldModel(data_in, data_out, params).to(device)
 
-            if params['finetune_mode']:
-                log_string('Running in finetuning mode. Initializing the model to the weights - {}'.format(params['pretrained_model_weights']))
-                state_dict = torch.load(params['pretrained_model_weights'], map_location='cpu')
-                if params['modality'] == 'audio_visual':
-                    state_dict = {k: v for k, v in state_dict.items() if 'fnn' not in k}
-                model.load_state_dict(state_dict, strict=False)
         elif params['model'] == 'myseldnet':
             if params['modality'] == 'audio_visual':
                 data_in, vid_data_in, data_out = data_gen_train.get_data_sizes()
@@ -353,6 +347,13 @@ def main(argv):
         else:
             print('ERROR: Unknown model configuration')
             exit()
+
+        if params['finetune_mode']:
+            log_string('Running in finetuning mode. Initializing the model to the weights - {}'.format(params['pretrained_model_weights']))
+            state_dict = torch.load(params['pretrained_model_weights'], map_location='cpu')
+            if params['modality'] == 'audio_visual':
+                state_dict = {k: v for k, v in state_dict.items() if 'fnn' not in k}
+            model.load_state_dict(state_dict, strict=False)
 
 
         log_string('---------------- SELD-net -------------------')
@@ -366,6 +367,8 @@ def main(argv):
         dcase_output_val_folder = os.path.join(params['dcase_output_dir'], '{}_{}_val'.format(unique_name, strftime("%Y%m%d%H%M%S", gmtime())))
         cls_feature_class.delete_and_create_folder(dcase_output_val_folder)
         log_string('Dumping recording-wise val results in: {}'.format(dcase_output_val_folder))
+
+        
 
         # Initialize evaluation metric class
         score_obj = ComputeSELDResults(params)

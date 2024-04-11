@@ -8,7 +8,9 @@ import cls_feature_class
 from IPython import embed
 from collections import deque
 import random
-
+import torchaudio
+import torch
+import scipy.io.wavfile as wav
 
 class DataGenerator(object):
     def __init__(
@@ -17,6 +19,8 @@ class DataGenerator(object):
         self._per_file = per_file
         self._is_eval = is_eval
         self._splits = np.array(split)
+        self.raw_chunks = params['raw_chunks']
+
         if per_file:
             self._batch_size = params['eval_batch_size']
         else:
@@ -27,12 +31,16 @@ class DataGenerator(object):
         self._shuffle = shuffle
         self._feat_cls = cls_feature_class.FeatureClass(params=params, is_eval=self._is_eval)
         self._label_dir = self._feat_cls.get_label_dir()
-        self._feat_dir = self._feat_cls.get_normalized_feat_dir()
+        if not self.raw_chunks:
+            self._feat_dir = self._feat_cls.get_normalized_feat_dir()
+        else:
+            self._feat_dir = self._feat_cls._aud_dir
         self._multi_accdoa = params['multi_accdoa']
 
         self._filenames_list = list()
+        self.audio_names = list()
         self._nb_frames_file = 0     # Using a fixed number of frames in feat files. Updated in _get_label_filenames_sizes()
-        self._nb_mel_bins = self._feat_cls.get_nb_mel_bins()
+        self._nb_feat_dim = self._feat_cls.get_nb_feature_dim()
         self._nb_ch = None
         self._label_len = None  # total length of label - DOA + SED
         self._doa_len = None    # DOA label length
@@ -53,7 +61,7 @@ class DataGenerator(object):
             '\tDatagen_mode: {}, nb_files: {}, nb_classes:{}\n'
             '\tnb_frames_file: {}, feat_len: {}, nb_ch: {}, label_len:{}\n'.format(
                 'eval' if self._is_eval else 'dev', len(self._filenames_list),  self._nb_classes,
-                self._nb_frames_file, self._nb_mel_bins, self._nb_ch, self._label_len
+                self._nb_frames_file, self._nb_feat_dim, self._nb_ch, self._label_len
                 )
         )
 
@@ -70,8 +78,15 @@ class DataGenerator(object):
             )
         )
 
+    def load_feat(self, path):
+        if not self.raw_chunks:
+            return np.load(path)
+        else:
+            feat = self._feat_cls._audio_chunks_from_file(path)
+            return feat
+
     def get_data_sizes(self):
-        feat_shape = (self._batch_size, self._nb_ch, self._feature_seq_len, self._nb_mel_bins)
+        feat_shape = (self._batch_size, self._nb_ch, self._feature_seq_len, self._nb_feat_dim)
         if self._is_eval:
             label_shape = None
         else:
@@ -91,18 +106,26 @@ class DataGenerator(object):
     def _get_filenames_list_and_feat_label_sizes(self):
         print('Computing some stats about the dataset')
         max_frames, total_frames, temp_feat = -1, 0, []
-        for filename in os.listdir(self._feat_dir):
-            if int(filename[4]) in self._splits:  # check which split the file belongs to
-                if self._modality == 'audio' or (hasattr(self, '_vid_feat_dir') and os.path.exists(os.path.join(self._vid_feat_dir, filename))):   # some audio files do not have corresponding videos. Ignore them.
-                    self._filenames_list.append(filename)
-                    temp_feat = np.load(os.path.join(self._feat_dir, filename))
-                    total_frames += (temp_feat.shape[0] - (temp_feat.shape[0] % self._feature_seq_len))
-                    if temp_feat.shape[0]>max_frames:
-                        max_frames = temp_feat.shape[0]
+        for subdir, _, files in os.walk(self._feat_dir):
+            for filename in files:
+                if int(filename[4]) in self._splits:  # check which split the file belongs to
+                    if self._modality == 'audio' or (hasattr(self, '_vid_feat_dir') and os.path.exists(os.path.join(self._vid_feat_dir, filename))):   # some audio files do not have corresponding videos. Ignore them.
+                        temp_feat = self.load_feat(os.path.join(subdir, filename))
+                        total_frames += (temp_feat.shape[0] - (temp_feat.shape[0] % self._feature_seq_len))
+                        if temp_feat.shape[0]>max_frames:
+                            max_frames = temp_feat.shape[0]
+
+                        if self.raw_chunks:
+                            this_filename = filename.replace('.wav', '') +'.npy'
+                            self.audio_names.append(os.path.join(subdir, filename))
+                        else:
+                            this_filename = filename
+
+                        self._filenames_list.append(this_filename)
 
         if len(temp_feat)!=0:
             self._nb_frames_file = max_frames if self._per_file else temp_feat.shape[0]
-            self._nb_ch = temp_feat.shape[1] // self._nb_mel_bins
+            self._nb_ch = temp_feat.shape[1] // self._nb_feat_dim
         else:
             print('Loading features failed')
             exit()
@@ -154,7 +177,12 @@ class DataGenerator(object):
                 # load feat and label to circular buffer. Always maintain atleast one batch worth feat and label in the
                 # circular buffer. If not keep refilling it.
                 while (len(self._circ_buf_feat) < self._feature_batch_seq_len or (hasattr(self, '_circ_buf_vid_feat') and hasattr(self, '_vid_feature_batch_seq_len') and len(self._circ_buf_vid_feat) < self._vid_feature_batch_seq_len)):
-                    temp_feat = np.load(os.path.join(self._feat_dir, self._filenames_list[file_cnt]))
+                    if self.raw_chunks:
+                        feat_path = self.audio_names[file_cnt]
+                    else:
+                        feat_path = os.path.join(self._feat_dir, self._filenames_list[file_cnt])
+
+                    temp_feat = self.load_feat(feat_path)
 
                     for row_cnt, row in enumerate(temp_feat):
                         self._circ_buf_feat.append(row)
@@ -182,14 +210,14 @@ class DataGenerator(object):
                     file_cnt = file_cnt + 1
 
                 # Read one batch size from the circular buffer
-                feat = np.zeros((self._feature_batch_seq_len, self._nb_mel_bins * self._nb_ch))
+                feat = np.zeros((self._feature_batch_seq_len, self._nb_feat_dim * self._nb_ch))
                 for j in range(self._feature_batch_seq_len):
                     feat[j, :] = self._circ_buf_feat.popleft()
-                feat = np.reshape(feat, (self._feature_batch_seq_len, self._nb_ch, self._nb_mel_bins))
+                feat = np.reshape(feat, (self._feature_batch_seq_len, self._nb_ch, self._nb_feat_dim))
 
                 # Split to sequences
                 feat = self._split_in_seqs(feat, self._feature_seq_len)
-                feat = np.transpose(feat, (0, 2, 1, 3))
+                feat = np.transpose(feat, (0, 2, 1, 3))                    
 
                 if self._modality == 'audio_visual':
                     vid_feat = np.zeros((self._vid_feature_batch_seq_len, 7, 7))
@@ -206,7 +234,12 @@ class DataGenerator(object):
                 # load feat and label to circular buffer. Always maintain atleast one batch worth feat and label in the
                 # circular buffer. If not keep refilling it.
                 while (len(self._circ_buf_feat) < self._feature_batch_seq_len or (hasattr(self, '_circ_buf_vid_feat') and hasattr(self, '_vid_feature_batch_seq_len') and len(self._circ_buf_vid_feat) < self._vid_feature_batch_seq_len)):
-                    temp_feat = np.load(os.path.join(self._feat_dir, self._filenames_list[file_cnt]))
+                    if self.raw_chunks:
+                        feat_path = self.audio_names[file_cnt]
+                    else:
+                        feat_path = os.path.join(self._feat_dir, self._filenames_list[file_cnt])
+
+                    temp_feat = self.load_feat(feat_path)
                     temp_label = np.load(os.path.join(self._label_dir, self._filenames_list[file_cnt]))
                     if self._modality == 'audio_visual':
                         temp_vid_feat = np.load(os.path.join(self._vid_feat_dir, self._filenames_list[file_cnt]))
@@ -258,10 +291,10 @@ class DataGenerator(object):
                     file_cnt = file_cnt + 1
 
                     # Read one batch size from the circular buffer
-                feat = np.zeros((self._feature_batch_seq_len, self._nb_mel_bins * self._nb_ch))
+                feat = np.zeros((self._feature_batch_seq_len, self._nb_feat_dim * self._nb_ch))
                 for j in range(self._feature_batch_seq_len):
                     feat[j, :] = self._circ_buf_feat.popleft()
-                feat = np.reshape(feat, (self._feature_batch_seq_len, self._nb_ch, self._nb_mel_bins))
+                feat = np.reshape(feat, (self._feature_batch_seq_len, self._nb_ch, self._nb_feat_dim))
 
                 if self._modality == 'audio_visual':
                     vid_feat = np.zeros((self._vid_feature_batch_seq_len, 7, 7))

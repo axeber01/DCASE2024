@@ -33,6 +33,7 @@ class FeatureClass:
         """
 
         # Input directories
+        self.raw_chunks = params['raw_chunks']
         self._feat_label_dir = params['feat_label_dir']
         self._dataset_dir = params['dataset_dir']
         self._dataset_combination = '{}_{}'.format(params['dataset'], 'eval' if is_eval else 'dev')
@@ -132,6 +133,38 @@ class FeatureClass:
                                         win_length=self._win_len, window='hann')
             spectra.append(stft_ch[:, :_nb_frames])
         return np.array(spectra).T
+    
+    def _get_chunks(self, audio_input):
+
+        chunks = []    
+        for s in range(0, len(audio_input), self._hop_len):
+            chunk = audio_input[s: s + self._win_len]
+            
+            # pad the last frame
+            if len(chunk) != self._win_len:
+                chunk = np.pad(chunk, (0, self._win_len - len(chunk)))
+                break
+            
+            chunks.append(chunk)
+
+        return np.array(chunks)
+    
+    def _audio_chunks_from_file(self, audio_path):
+        
+        audio_input, fs = self._load_audio(audio_path)
+
+        nb_feat_frames = int(len(audio_input) / float(self._hop_len))
+        nb_label_frames = int(len(audio_input) / float(self._label_hop_len))
+        self._filewise_frames[os.path.basename(audio_path).split('.')[0]] = [nb_feat_frames, nb_label_frames]
+
+        _nb_ch = audio_input.shape[1]
+        chunks = []
+        for ch_cnt in range(_nb_ch):
+            this_chunk = self._get_chunks(audio_input[:, ch_cnt])
+            chunks.append(this_chunk) #[:, :nb_feat_frames])
+        
+        chunks = np.array(chunks).transpose((1, 0, 2))
+        return chunks.reshape((chunks.shape[0], -1))
 
     def _get_mel_spectrogram(self, linear_spectra):
         mel_feat = np.zeros((linear_spectra.shape[0], self._nb_mel_bins, linear_spectra.shape[-1]))
@@ -351,27 +384,32 @@ class FeatureClass:
 
     def extract_file_feature(self, _arg_in):
         _file_cnt, _wav_path, _feat_path = _arg_in
-        spect = self._get_spectrogram_for_file(_wav_path)
 
-        # extract mel
-        if not self._use_salsalite:
-            mel_spect = self._get_mel_spectrogram(spect)
+        if self.raw_chunks:
+            feat = None # use .wav files instead self._audio_chunks_from_file(_wav_path)
 
-        feat = None
-        if self._dataset == 'foa':
-            # extract intensity vectors
-            foa_iv = self._get_foa_intensity_vectors(spect)
-            feat = np.concatenate((mel_spect, foa_iv), axis=-1)
-        elif self._dataset == 'mic':
-            if self._use_salsalite:
-                feat = self._get_salsalite(spect)
-            else:
-                # extract gcc
-                gcc = self._get_gcc(spect)
-                feat = np.concatenate((mel_spect, gcc), axis=-1)
         else:
-            print('ERROR: Unknown dataset format {}'.format(self._dataset))
-            exit()
+            spect = self._get_spectrogram_for_file(_wav_path)
+
+            # extract mel
+            if not self._use_salsalite:
+                mel_spect = self._get_mel_spectrogram(spect)
+
+            feat = None
+            if self._dataset == 'foa':
+                # extract intensity vectors
+                foa_iv = self._get_foa_intensity_vectors(spect)
+                feat = np.concatenate((mel_spect, foa_iv), axis=-1)
+            elif self._dataset == 'mic':
+                if self._use_salsalite:
+                    feat = self._get_salsalite(spect)
+                else:
+                    # extract gcc
+                    gcc = self._get_gcc(spect)
+                    feat = np.concatenate((mel_spect, gcc), axis=-1)
+            else:
+                print('ERROR: Unknown dataset format {}'.format(self._dataset))
+                exit()
 
         if feat is not None:
             print('{}: {}, {}'.format(_file_cnt, os.path.basename(_wav_path), feat.shape))
@@ -694,16 +732,26 @@ class FeatureClass:
     # ------------------------------- Misc public functions -------------------------------
 
     def get_normalized_feat_dir(self):
-        return os.path.join(
-            self._feat_label_dir,
-            '{}_norm'.format('{}_salsa'.format(self._dataset_combination) if (self._dataset=='mic' and self._use_salsalite) else self._dataset_combination)
-        )
+        
+        if self._dataset=='mic' and self._use_salsalite:
+            name = '{}'.format('{}_salsa'.format(self._dataset_combination))
+        elif self._dataset=='mic' and self.raw_chunks:
+            name = '{}'.format('{}_raw_chunks'.format(self._dataset_combination))
+        else:
+            name = self._dataset_combination
+
+        return os.path.join(self._feat_label_dir, '{}_norm'.format(name))
 
     def get_unnormalized_feat_dir(self):
-        return os.path.join(
-            self._feat_label_dir,
-            '{}'.format('{}_salsa'.format(self._dataset_combination) if (self._dataset=='mic' and self._use_salsalite) else self._dataset_combination)
-        )
+
+        if self._dataset=='mic' and self._use_salsalite:
+            name = '{}'.format('{}_salsa'.format(self._dataset_combination))
+        elif self._dataset=='mic' and self.raw_chunks:
+            name = '{}'.format('{}_raw_chunks'.format(self._dataset_combination))
+        else:
+            name = self._dataset_combination
+
+        return os.path.join(self._feat_label_dir, name)
 
     def get_label_dir(self):
         if self._is_eval:
@@ -715,9 +763,10 @@ class FeatureClass:
         )
 
     def get_normalized_wts_file(self):
+        name = self._dataset if not self.raw_chunks else '{}'.format('{}_raw_chunks'.format(self._dataset))
         return os.path.join(
             self._feat_label_dir,
-            '{}_wts'.format(self._dataset)
+            '{}_wts'.format(name)
         )
 
     def get_vid_feat_dir(self):
@@ -737,6 +786,13 @@ class FeatureClass:
 
     def get_nb_mel_bins(self):
         return self._nb_mel_bins
+    
+    def get_nb_feature_dim(self):
+        if self.raw_chunks:
+            return self._win_len
+        else:
+            return self._nb_mel_bins
+
 
 
 def create_folder(folder_name):
