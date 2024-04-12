@@ -32,9 +32,9 @@ class NGCCModel(torch.nn.Module):
         self.sig_len = int(self.fs * params['hop_len_s'] * 2) # 960 samples
         self.in_channels = int(self.ngcc_out_channels * params['n_mics'] * ( 1 + (params['n_mics'] - 1) / 2))
 
-        self.ngcc = NGCCPHAT(max_tau=self.mel_bins , n_mel_bins=self.mel_bins , use_sinc=True,
+        self.ngcc = NGCCPHAT(max_tau=self.mel_bins//2, n_mel_bins=self.mel_bins , use_sinc=True,
                                         sig_len=self.sig_len , num_channels=self.ngcc_channels, num_out_channels=self.ngcc_out_channels, fs=self.fs,
-                                        normalize_input=True, normalize_output=False)
+                                        normalize_input=True, normalize_output=False, pool_len=params['t_pool_size'][0])
 
         self.nb_classes = params['unique_classes']
         self.params=params
@@ -42,10 +42,10 @@ class NGCCModel(torch.nn.Module):
         if len(params['f_pool_size']):
             for conv_cnt in range(len(params['f_pool_size'])):
                 self.conv_block_list.append(ConvBlock(in_channels=params['nb_cnn2d_filt'] if conv_cnt else self.in_channels, out_channels=params['nb_cnn2d_filt']))
-                self.conv_block_list.append(nn.MaxPool2d((params['t_pool_size'][conv_cnt], params['f_pool_size'][conv_cnt])))
+                self.conv_block_list.append(nn.MaxPool2d((1, params['f_pool_size'][conv_cnt])))
                 self.conv_block_list.append(nn.Dropout2d(p=params['dropout_rate']))
 
-        self.gru_input_dim = params['nb_cnn2d_filt'] * int(np.floor(in_feat_shape[-1] / np.prod(params['f_pool_size'])))
+        self.gru_input_dim = params['nb_cnn2d_filt'] * int(np.floor(self.mel_bins / np.prod(params['f_pool_size'])))
         self.gru = torch.nn.GRU(input_size=self.gru_input_dim, hidden_size=params['rnn_size'],
                                 num_layers=params['nb_rnn_layers'], batch_first=True,
                                 dropout=params['dropout_rate'], bidirectional=True)
@@ -74,7 +74,12 @@ class NGCCModel(torch.nn.Module):
     def forward(self, x, vid_feat=None):
         """input: (batch_size, mic_channels, time_steps, sig_len)"""
 
+        print(x.shape)
         x = self.ngcc(x)
+        print(x.shape)
+        print(x[0])
+        print(torch.sum(torch.isnan(x.flatten())))
+        print(x.flatten().shape)
 
         for conv_cnt in range(len(self.conv_block_list)):
             x = self.conv_block_list[conv_cnt](x)
@@ -99,7 +104,7 @@ class NGCCModel(torch.nn.Module):
         for fnn_cnt in range(len(self.fnn_list) - 1):
             x = self.fnn_list[fnn_cnt](x)
         doa = self.fnn_list[-1](x)
-
+        print(doa[0])
         doa = doa.reshape(doa.size(0), doa.size(1), 3, 4, 13)
         doa1 = doa[:, :, :, :3, :]
         dist = doa[:, :, :, 3:, :]

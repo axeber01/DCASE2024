@@ -47,8 +47,8 @@ def get_params(argv='1'):
 
         # DNN MODEL PARAMETERS
         label_sequence_length=50,    # Feature sequence length
-        batch_size=128,              # Batch size
-        eval_batch_size=128,
+        batch_size=32,              # Batch size
+        eval_batch_size=32,
         dropout_rate=0.05,           # Dropout rate, constant for all layers
         nb_cnn2d_filt=64,           # Number of CNN nodes, constant for each layer
         f_pool_size=[4, 4, 2],      # CNN frequency pooling, length of list = number of CNN layers, list value = pooling per layer
@@ -138,8 +138,9 @@ def get_params(argv='1'):
         params['multi_accdoa'] = True
         params['n_mics'] = 4
         params['model'] = 'ngccmodel'
-        params['ngcc_channels'] = 128
+        params['ngcc_channels'] = 32
         params['ngcc_out_channels'] = 16
+        params['lr'] = 1e-4
 
     elif argv == '7':
         print("MIC + SALSA + multi ACCDOA\n")
