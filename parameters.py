@@ -40,7 +40,7 @@ def get_params(argv='1'):
         fmax_spectra_salsalite=9000,
 
         # MODEL TYPE
-        model = 'myseldnet',
+        model = 'seldnet',
         modality='audio',  # 'audio' or 'audio_visual'
         multi_accdoa=False,  # False - Single-ACCDOA or True - Multi-ACCDOA
         thresh_unify=15,    # Required for Multi-ACCDOA only. Threshold of unification for inference in degrees.
@@ -122,11 +122,24 @@ def get_params(argv='1'):
         print("RAW AUDIO CHUNKS + multi ACCDOA\n")
         params['raw_chunks'] = True
         params['pretrained_model_weights'] = 'blah.h5'
-        params['quick_test'] = True
+        params['quick_test'] = False
         params['dataset'] = 'mic'
         params['use_salsalite'] = False
         params['multi_accdoa'] = True
         params['n_mics'] = 4
+
+    elif argv == '9':
+        print("RAW AUDIO CHUNKS w/ NGCC model + multi ACCDOA\n")
+        params['raw_chunks'] = True
+        params['pretrained_model_weights'] = 'blah.h5'
+        params['quick_test'] = False
+        params['dataset'] = 'mic'
+        params['use_salsalite'] = False
+        params['multi_accdoa'] = True
+        params['n_mics'] = 4
+        params['model'] = 'ngccmodel'
+        params['ngcc_channels'] = 128
+        params['ngcc_out_channels'] = 16
 
     elif argv == '7':
         print("MIC + SALSA + multi ACCDOA\n")

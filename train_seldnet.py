@@ -20,6 +20,7 @@ from IPython import embed
 from cls_compute_seld_results import ComputeSELDResults, reshape_3Dto2D
 from SELD_evaluation_metrics import distance_between_cartesian_coordinates
 import seldnet_model 
+from model import NGCCModel
 
 def get_accdoa_labels(accdoa_in, nb_classes):
     x, y, z = accdoa_in[:, :, :nb_classes], accdoa_in[:, :, nb_classes:2*nb_classes], accdoa_in[:, :, 2*nb_classes:]
@@ -202,7 +203,7 @@ def train_epoch(data_generator, optimizer, model, criterion, params, device):
             data, vid_feat, target = values
             data, vid_feat, target = torch.tensor(data).to(device).float(), torch.tensor(vid_feat).to(device).float(), torch.tensor(target).to(device).float()
             
-            if params['specaugment']:
+            if params['specaugment'] and not params['raw_chunks']:
                 spec = data[:, :params['n_mics']].permute(0, 1, 3, 2)
                 data[:, :params['n_mics']] = train_transform(spec).permute(0, 1, 3, 2)
 
@@ -344,6 +345,16 @@ def main(argv):
             else:
                 data_in, data_out = data_gen_train.get_data_sizes()
                 model = seldnet_model.MySeldModel(data_in, data_out, params).to(device)
+
+        elif params['model'] == 'ngccmodel':
+            if params['modality'] == 'audio_visual':
+                data_in, vid_data_in, data_out = data_gen_train.get_data_sizes()
+                model = NGCCModel(data_in, data_out, params, vid_data_in).to(device)
+            else:
+                data_in, data_out = data_gen_train.get_data_sizes()
+                model = NGCCModel(data_in, data_out, params).to(device)
+
+                
         else:
             print('ERROR: Unknown model configuration')
             exit()
