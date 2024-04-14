@@ -143,6 +143,7 @@ class FeatureClass:
             # pad the last frame
             if len(chunk) != self._win_len:
                 chunk = np.pad(chunk, (0, self._win_len - len(chunk)))
+                chunks.append(chunk)
                 break
             
             chunks.append(chunk)
