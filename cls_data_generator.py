@@ -27,7 +27,7 @@ class DataGenerator(object):
         self._per_file = per_file
         self._is_eval = is_eval
         self._splits = np.array(split)
-        self.raw_chunks = params['raw_chunks']
+        self.wav_chunks = params['raw_chunks'] and not params['saved_chunks']
 
         if per_file:
             self._batch_size = params['eval_batch_size']
@@ -39,7 +39,7 @@ class DataGenerator(object):
         self._shuffle = shuffle
         self._feat_cls = cls_feature_class.FeatureClass(params=params, is_eval=self._is_eval)
         self._label_dir = self._feat_cls.get_label_dir()
-        if not self.raw_chunks:
+        if not self.wav_chunks:
             self._feat_dir = self._feat_cls.get_normalized_feat_dir()
         else:
             self._feat_dir = self._feat_cls._aud_dir
@@ -87,7 +87,7 @@ class DataGenerator(object):
         )
 
     def load_feat(self, path):
-        if not self.raw_chunks:
+        if not self.wav_chunks:
             return np.load(path)
         else:
             feat = self._feat_cls._audio_chunks_from_file(path)
@@ -123,7 +123,7 @@ class DataGenerator(object):
                         if temp_feat.shape[0]>max_frames:
                             max_frames = temp_feat.shape[0]
 
-                        if self.raw_chunks:
+                        if self.wav_chunks:
                             this_filename = filename.replace('.wav', '') +'.npy'
                             self.audio_names.append(os.path.join(subdir, filename))
                         else:
@@ -169,7 +169,10 @@ class DataGenerator(object):
         :return: 
         """
         if self._shuffle:
-            self._filenames_list, self.audio_names = shuffle_lists(self._filenames_list, self.audio_names)
+            if self.wav_chunks:
+                self._filenames_list, self.audio_names = shuffle_lists(self._filenames_list, self.audio_names)
+            else:
+                random.shuffle(self._filenames_list)
 
         # Ideally this should have been outside the while loop. But while generating the test data we want the data
         # to be the same exactly for all epoch's hence we keep it here.
@@ -185,7 +188,7 @@ class DataGenerator(object):
                 # load feat and label to circular buffer. Always maintain atleast one batch worth feat and label in the
                 # circular buffer. If not keep refilling it.
                 while (len(self._circ_buf_feat) < self._feature_batch_seq_len or (hasattr(self, '_circ_buf_vid_feat') and hasattr(self, '_vid_feature_batch_seq_len') and len(self._circ_buf_vid_feat) < self._vid_feature_batch_seq_len)):
-                    if self.raw_chunks:
+                    if self.wav._chunks:
                         feat_path = self.audio_names[file_cnt]
                     else:
                         feat_path = os.path.join(self._feat_dir, self._filenames_list[file_cnt])
@@ -242,7 +245,7 @@ class DataGenerator(object):
                 # load feat and label to circular buffer. Always maintain atleast one batch worth feat and label in the
                 # circular buffer. If not keep refilling it.
                 while (len(self._circ_buf_feat) < self._feature_batch_seq_len or (hasattr(self, '_circ_buf_vid_feat') and hasattr(self, '_vid_feature_batch_seq_len') and len(self._circ_buf_vid_feat) < self._vid_feature_batch_seq_len)):
-                    if self.raw_chunks:
+                    if self.wav_chunks:
                         feat_path = self.audio_names[file_cnt]
                     else:
                         feat_path = os.path.join(self._feat_dir, self._filenames_list[file_cnt])

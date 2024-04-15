@@ -140,6 +140,7 @@ def get_params(argv='1'):
         params['model'] = 'ngccmodel'
         params['ngcc_channels'] = 32
         params['ngcc_out_channels'] = 16
+        params['saved_chunks'] = True
         params['lr'] = 1e-4
 
     elif argv == '7':

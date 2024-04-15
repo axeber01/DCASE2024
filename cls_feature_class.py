@@ -34,6 +34,7 @@ class FeatureClass:
 
         # Input directories
         self.raw_chunks = params['raw_chunks']
+        self.saved_chunks = params['saved_chunks']
         self._feat_label_dir = params['feat_label_dir']
         self._dataset_dir = params['dataset_dir']
         self._dataset_combination = '{}_{}'.format(params['dataset'], 'eval' if is_eval else 'dev')
@@ -387,7 +388,11 @@ class FeatureClass:
         _file_cnt, _wav_path, _feat_path = _arg_in
 
         if self.raw_chunks:
-            feat = None # use .wav files instead self._audio_chunks_from_file(_wav_path)
+            if self.saved_chunks:
+                # extract chunks and save as .npy-files for better speed during training (requires several GB of extra disk space)
+                feat = self._audio_chunks_from_file(_wav_path)
+            else:
+                feat = None # use .wav files when training instead
 
         else:
             spect = self._get_spectrogram_for_file(_wav_path)
