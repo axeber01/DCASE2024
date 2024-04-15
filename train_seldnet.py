@@ -211,7 +211,6 @@ def train_epoch(data_generator, optimizer, model, criterion, params, device):
             output = model(data, vid_feat)
 
         loss = criterion(output, target)
-        print(loss)
         loss.backward()
         optimizer.step()
         

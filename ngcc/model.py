@@ -102,9 +102,6 @@ class NGCCPHAT(nn.Module):
         fs - sampling frequency
         '''
 
-        print(sig_len)
-        print(fs)
-        print(max_tau)
         self.max_tau = max_tau
         self.normalize_input = normalize_input
         self.normalize_output = normalize_output
@@ -160,11 +157,7 @@ class NGCCPHAT(nn.Module):
         # filter signals 
         B, M, T, L = audio.shape # (batch_size, #mics, #time_windows, win_len)
         x = audio.reshape(-1, 1, T*L)
-        print("input")
-        print(torch.sum(torch.isnan(x.flatten())))
         x = self.backbone(x)
-        print("backbone")
-        print(torch.sum(torch.isnan(x.flatten())))
 
         s = x.shape[2]
         padding = get_pad(
@@ -196,9 +189,6 @@ class NGCCPHAT(nn.Module):
         cc = torch.stack(cc, dim=-1) # (batch_size, #time_windows, channels, #delays, #combinations)
         cc = cc.permute(0, 4, 1, 2, 3) # (batch_size, #combinations, #time_windows, channels, #delays)
         cc = cc[:, :, :, :, 1:] #throw away one dely to make #delays even
-        
-        print("CC")
-        print(torch.sum(torch.isnan(cc.flatten())))
 
         B, N, _, C, tau = cc.shape
         cc = cc.reshape(-1, C, tau)
@@ -224,22 +214,12 @@ class NGCCPHAT(nn.Module):
             cc /= cc.std(dim=-1, keepdims=True)
 
         # compute log mel-spectrograms from x
-        #print(x_spec.shape)
         x_spec = x_spec.permute(0, 1, 3, 2, 4) # (batch_size, #mics, channels, #time_windows, #delays)
-        #print(x_spec.shape)
         x_spec = x_spec.reshape(B, M * C_spec, T, L) # (batch_size, #mics * channels, #time_windows, #delays)
-        print("x_spec")
-        print(torch.sum(torch.isnan(x_spec.flatten())))
         X = torch.fft.rfft(x_spec, n=self.nfft, norm='ortho', dim=-1) # (batch_size, ##mics * channels, #time_windows, #freqs)
-        print("X")
-        print(torch.sum(torch.isnan(X.flatten())))
 
         mag_spectra = torch.abs(X)**2 # 
         mel_spectra = self.mel_transform(mag_spectra.permute(0,1,3,2)).permute(0,1,3,2)
-        #mel_spectra =  (mag_spectra*self.mel_wts).sum(axis = -1) # (batch_size, ##mics * channels, #time_windows, #mel_weights)
-        #log_mel_spectra = librosa.power_to_db(mel_spectra)
-        print("mel_spectra")
-        print(torch.sum(torch.isnan(mel_spectra.flatten())))
 
         # here, #mel_weights must be equal to #delays for this to work
         feat = torch.cat((mel_spectra, cc), dim=1) # (batch_size, ##mics * channels + #combinations, #time_windows, #mel_weights)

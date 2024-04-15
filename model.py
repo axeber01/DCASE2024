@@ -74,12 +74,7 @@ class NGCCModel(torch.nn.Module):
     def forward(self, x, vid_feat=None):
         """input: (batch_size, mic_channels, time_steps, sig_len)"""
 
-        print(x.shape)
         x = self.ngcc(x)
-        print(x.shape)
-        print(x[0])
-        print(torch.sum(torch.isnan(x.flatten())))
-        print(x.flatten().shape)
 
         for conv_cnt in range(len(self.conv_block_list)):
             x = self.conv_block_list[conv_cnt](x)
@@ -104,7 +99,6 @@ class NGCCModel(torch.nn.Module):
         for fnn_cnt in range(len(self.fnn_list) - 1):
             x = self.fnn_list[fnn_cnt](x)
         doa = self.fnn_list[-1](x)
-        print(doa[0])
         doa = doa.reshape(doa.size(0), doa.size(1), 3, 4, 13)
         doa1 = doa[:, :, :, :3, :]
         dist = doa[:, :, :, 3:, :]
