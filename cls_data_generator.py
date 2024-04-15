@@ -12,6 +12,14 @@ import torchaudio
 import torch
 import scipy.io.wavfile as wav
 
+
+# shuffle several lists with same order
+def shuffle_lists(*ls):
+  l =list(zip(*ls))
+
+  random.shuffle(l)
+  return zip(*l)
+
 class DataGenerator(object):
     def __init__(
             self, params, split=1, shuffle=True, per_file=False, is_eval=False
@@ -161,7 +169,7 @@ class DataGenerator(object):
         :return: 
         """
         if self._shuffle:
-            random.shuffle(self._filenames_list)
+            self._filenames_list, self.audio_names = shuffle_lists(self._filenames_list, self.audio_names)
 
         # Ideally this should have been outside the while loop. But while generating the test data we want the data
         # to be the same exactly for all epoch's hence we keep it here.
