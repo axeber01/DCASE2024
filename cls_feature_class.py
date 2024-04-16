@@ -61,7 +61,10 @@ class FeatureClass:
         self._label_frame_res = self._fs / float(self._label_hop_len)
         self._nb_label_frames_1s = int(self._label_frame_res)
 
-        self._win_len = 2 * self._hop_len
+        if self.raw_chunks:
+            self._win_len = self._hop_len
+        else:
+            self._win_len = 2 * self._hop_len
         self._nfft = self._next_greater_power_of_2(self._win_len)
 
         self._dataset = params['dataset']
