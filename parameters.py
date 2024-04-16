@@ -35,6 +35,7 @@ def get_params(argv='1'):
 
         use_salsalite=False,  # Used for MIC dataset only. If true use salsalite features, else use GCC features
         raw_chunks=False,
+        saved_chunks=False,
         fmin_doa_salsalite=50,
         fmax_doa_salsalite=2000,
         fmax_spectra_salsalite=9000,
@@ -47,8 +48,8 @@ def get_params(argv='1'):
 
         # DNN MODEL PARAMETERS
         label_sequence_length=50,    # Feature sequence length
-        batch_size=32,              # Batch size
-        eval_batch_size=32,
+        batch_size=64,              # Batch size
+        eval_batch_size=64,
         dropout_rate=0.05,           # Dropout rate, constant for all layers
         nb_cnn2d_filt=64,           # Number of CNN nodes, constant for each layer
         f_pool_size=[4, 4, 2],      # CNN frequency pooling, length of list = number of CNN layers, list value = pooling per layer
@@ -64,7 +65,7 @@ def get_params(argv='1'):
         fnn_size=128,  # FNN contents, length of list = number of layers, list value = number of nodes
 
         nb_epochs=250,  # Train for maximum epochs
-        eval_freq=50, # evaluate every x epochs
+        eval_freq=25, # evaluate every x epochs
         lr=1e-3,
         final_lr=1e-5, # final learning rate in cosine scheduler
         weight_decay=0.0,
@@ -138,10 +139,12 @@ def get_params(argv='1'):
         params['multi_accdoa'] = True
         params['n_mics'] = 4
         params['model'] = 'ngccmodel'
-        params['ngcc_channels'] = 32
+        params['ngcc_channels'] = 16
         params['ngcc_out_channels'] = 16
         params['saved_chunks'] = True
-        params['lr'] = 1e-4
+        params['use_mel'] = False
+        params['nb_epochs'] = 250
+        #params['lr'] = 1e-4
 
     elif argv == '7':
         print("MIC + SALSA + multi ACCDOA\n")

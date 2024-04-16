@@ -88,7 +88,7 @@ class GCC(nn.Module):
 class NGCCPHAT(nn.Module):
     def __init__(self, max_tau=64, n_mel_bins=64, use_sinc=True,
                                         sig_len=960, num_channels=128, num_out_channels=8, fs=24000,
-                                        normalize_input=True, normalize_output=False, pool_len=5):
+                                        normalize_input=True, normalize_output=False, pool_len=5, use_mel=True):
         super().__init__()
 
         '''
@@ -106,47 +106,63 @@ class NGCCPHAT(nn.Module):
         self.normalize_input = normalize_input
         self.normalize_output = normalize_output
         self.pool_len = pool_len
+        self.n_mel_bins = n_mel_bins
+        self.use_mel = use_mel
 
         sincnet_params = {'input_dim': sig_len,
                           'fs': fs,
-                          'cnn_N_filt': [num_channels, num_channels, num_channels, num_channels],
-                          'cnn_len_filt': [sig_len-1, 11, 9, 7],
-                          'cnn_max_pool_len': [pool_len, 1, 1, 1],
+                          'cnn_N_filt': [num_channels],
+                          'cnn_len_filt': [sig_len-1],
+                          'cnn_max_pool_len': [1],
                           'cnn_use_laynorm_inp': False,
                           'cnn_use_batchnorm_inp': False,
-                          'cnn_use_laynorm': [False, False, False, False],
-                          'cnn_use_batchnorm': [True, True, True, True],
-                          'cnn_act': ['leaky_relu', 'leaky_relu', 'leaky_relu', 'linear'],
-                          'cnn_drop': [0.0, 0.0, 0.0, 0.0],
+                          'cnn_use_laynorm': [False],
+                          'cnn_use_batchnorm': [True],
+                          'cnn_act': ['linear'],
+                          'cnn_drop': [0.0],
                           'use_sinc': use_sinc,
                           }
 
         self.backbone = SincNet(sincnet_params)
-        self.mlp_kernels = [11, 9, 7]
-        self.channels = [num_channels, num_channels, num_channels, num_channels]
-        self.final_kernel = [5]
+        self.pool = torch.nn.AvgPool2d((pool_len, 1)) # torch.nn.AvgPool1d(pool_len)
+        #self.mlp_kernels = [11, 9, 7]
+        #self.channels = [num_channels, num_channels, num_channels, num_channels]
+        self.final_kernel = 3
 
         self.gcc = GCC(max_tau=self.max_tau, dim=4, filt='phat')
 
-        self.mlp = nn.ModuleList([nn.Sequential(
-                nn.Conv1d(self.channels[i], self.channels[i+1], kernel_size=k),
-                nn.BatchNorm1d(self.channels[i+1]),
-                nn.LeakyReLU(0.2)) for i, k in enumerate(self.mlp_kernels)])
+        #self.mlp = nn.ModuleList([nn.Sequential(
+        #        nn.Conv1d(self.channels[i], self.channels[i+1], kernel_size=k),
+        #        nn.BatchNorm1d(self.channels[i+1]),
+        #        nn.LeakyReLU(0.2)) for i, k in enumerate(self.mlp_kernels)])
         
 
         self.final_conv = nn.Conv1d(num_channels, num_out_channels, kernel_size=self.final_kernel)
+        self.spec_conv = nn.Conv1d(num_channels, num_out_channels, kernel_size=self.final_kernel, stride=self.final_kernel)
+        self.cc_drop = nn.Dropout(0.5)
 
-        self.spec_conv = nn.Sequential(
-                nn.Conv1d(num_channels, num_out_channels, self.final_kernel),
-                nn.BatchNorm1d(num_out_channels),
-                nn.LeakyReLU(0.2),
+        #self.spec_conv = nn.Sequential(
+                #nn.Conv1d(num_channels, num_out_channels, self.final_kernel),
+                #nn.BatchNorm1d(num_out_channels),
+                #nn.LeakyReLU(0.2),
                 #n.Dropout(0.5)
-        )
+        #)
 
-        self.n_mel_bins = n_mel_bins
-        self.nfft = next_greater_power_of_2(sig_len)
-        self.mel_transform = torchaudio.transforms.MelScale(n_mels=self.n_mel_bins, sample_rate=fs, n_stft=self.nfft//2+1)
+        
+        if self.use_mel:
+            self.nfft = next_greater_power_of_2(sig_len)
+            self.mel_transform = torchaudio.transforms.MelScale(n_mels=self.n_mel_bins, sample_rate=fs, n_stft=self.nfft//2+1)
 
+        else:
+            in_size = sig_len // self.final_kernel
+            self.proj = nn.Sequential(
+                    nn.Dropout(0.5),
+                    nn.Linear(in_size, in_size // 2),
+                    nn.LayerNorm(in_size // 2),
+                    nn.GELU(),
+                    nn.Dropout(0.5),
+                    nn.Linear(in_size // 2, self.n_mel_bins)
+            )
 
     def forward(self, audio):
 
@@ -158,21 +174,23 @@ class NGCCPHAT(nn.Module):
         B, M, T, L = audio.shape # (batch_size, #mics, #time_windows, win_len)
         x = audio.reshape(-1, 1, T*L)
         x = self.backbone(x)
+        #x = self.pool(x)
 
-        s = x.shape[2]
-        padding = get_pad(
-            size=s, kernel_size=self.final_kernel, stride=1, dilation=1)
-        x_spec = F.pad(x, pad=padding, mode='constant')
-        x_spec = self.spec_conv(x_spec)
+        #s = x.shape[2]
+        #padding = get_pad(
+        #    size=s, kernel_size=self.final_kernel, stride=1, dilation=1)
+        #x_spec = F.pad(x, pad=padding, mode='constant')
+        x_spec = self.spec_conv(x)
 
         _, C, _ = x.shape
-        T = int(T / self.pool_len)
+        #T = int(T / self.pool_len)
+        L_spec = int(L // self.final_kernel)
         x_cc = x.reshape(B, M, C, T*L) # (batch_size, #mics, channels, #time_windows * win_len)
         x_cc = x.reshape(B, M, C, T, L).permute(0, 1, 3, 2, 4) # (batch_size, #mics, #time_windows, channels, win_len)
 
         _, C_spec, _ = x_spec.shape
-        x_spec = x_spec.reshape(B, M, C_spec, T*L) # (batch_size, #mics, channels, #time_windows * win_len)
-        x_spec = x_spec.reshape(B, M, C_spec, T, L).permute(0, 1, 3, 2, 4) # (batch_size, #mics, #time_windows, channels, win_len)
+        x_spec = x_spec.reshape(B, M, C_spec, T*L_spec) # (batch_size, #mics, channels, #time_windows * win_len)
+        x_spec = x_spec.reshape(B, M, C_spec, T, L_spec).permute(0, 1, 3, 2, 4) # (batch_size, #mics, #time_windows, channels, win_len)
 
         cc = [] 
         # compute gcc-phat for pairwise microphone combinations
@@ -192,12 +210,12 @@ class NGCCPHAT(nn.Module):
 
         B, N, _, C, tau = cc.shape
         cc = cc.reshape(-1, C, tau)
-        for k, layer in enumerate(self.mlp):
-            s = cc.shape[2]
-            padding = get_pad(
-                size=s, kernel_size=self.mlp_kernels[k], stride=1, dilation=1)
-            cc = F.pad(cc, pad=padding, mode='constant')
-            cc = layer(cc)
+        #for k, layer in enumerate(self.mlp):
+        #    s = cc.shape[2]
+        #    padding = get_pad(
+        #        size=s, kernel_size=self.mlp_kernels[k], stride=1, dilation=1)
+        #    cc = F.pad(cc, pad=padding, mode='constant')
+        #    cc = layer(cc)
 
         s = cc.shape[2]
         padding = get_pad(
@@ -209,20 +227,28 @@ class NGCCPHAT(nn.Module):
         cc = cc.reshape(B, N, T, C, tau)
         cc = cc.permute(0, 1, 3, 2, 4)  # (batch_size, #combinations, channels, #time_windows, #delays)
         cc = cc.reshape(B, N * C, T, tau) # (batch_size, #combinations * channels, #time_windows, #delays)
+        cc = self.cc_drop(cc)
 
         if self.normalize_output:
             cc /= cc.std(dim=-1, keepdims=True)
 
         # compute log mel-spectrograms from x
         x_spec = x_spec.permute(0, 1, 3, 2, 4) # (batch_size, #mics, channels, #time_windows, #delays)
-        x_spec = x_spec.reshape(B, M * C_spec, T, L) # (batch_size, #mics * channels, #time_windows, #delays)
-        X = torch.fft.rfft(x_spec, n=self.nfft, norm='ortho', dim=-1) # (batch_size, ##mics * channels, #time_windows, #freqs)
+        x_spec = x_spec.reshape(B, M * C_spec, T, L_spec) # (batch_size, #mics * channels, #time_windows, #delays)
+        
+        if self.use_mel:
+            X = torch.fft.rfft(x_spec, n=self.nfft, norm='ortho', dim=-1) # (batch_size, ##mics * channels, #time_windows, #freqs)
 
-        mag_spectra = torch.abs(X)**2 # 
-        mel_spectra = self.mel_transform(mag_spectra.permute(0,1,3,2)).permute(0,1,3,2)
+            mag_spectra = torch.abs(X)**2 # 
+            mel_spectra = self.mel_transform(mag_spectra.permute(0,1,3,2)).permute(0,1,3,2)
+        else:
+            mel_spectra = self.proj(x_spec)
 
         # here, #mel_weights must be equal to #delays for this to work
         feat = torch.cat((mel_spectra, cc), dim=1) # (batch_size, ##mics * channels + #combinations, #time_windows, #mel_weights)
+
+        # pool over time
+        feat = self.pool(feat)
 
         return feat
 

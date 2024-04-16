@@ -29,12 +29,12 @@ class NGCCModel(torch.nn.Module):
         self.ngcc_out_channels = params['ngcc_out_channels']
         self.mel_bins = params['nb_mel_bins']
         self.fs = params['fs']
-        self.sig_len = int(self.fs * params['hop_len_s'] * 2) # 960 samples
+        self.sig_len = int(self.fs * params['hop_len_s']) # 480 samples
         self.in_channels = int(self.ngcc_out_channels * params['n_mics'] * ( 1 + (params['n_mics'] - 1) / 2))
 
         self.ngcc = NGCCPHAT(max_tau=self.mel_bins//2, n_mel_bins=self.mel_bins , use_sinc=True,
                                         sig_len=self.sig_len , num_channels=self.ngcc_channels, num_out_channels=self.ngcc_out_channels, fs=self.fs,
-                                        normalize_input=False, normalize_output=False, pool_len=params['t_pool_size'][0])
+                                        normalize_input=False, normalize_output=False, pool_len=params['t_pool_size'][0], use_mel=params['use_mel'])
 
         self.nb_classes = params['unique_classes']
         self.params=params
