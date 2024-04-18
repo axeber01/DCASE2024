@@ -118,6 +118,8 @@ def get_params(argv='1'):
         params['use_salsalite'] = False
         params['multi_accdoa'] = True
         params['n_mics'] = 4
+        params['nb_epochs'] = 1000
+        params['batch_size'] = 128
 
     elif argv == '8':
         print("RAW AUDIO CHUNKS + multi ACCDOA\n")
@@ -143,7 +145,7 @@ def get_params(argv='1'):
         params['ngcc_out_channels'] = 16
         params['saved_chunks'] = True
         params['use_mel'] = False
-        params['nb_epochs'] = 250
+        params['nb_epochs'] = 1000
         #params['lr'] = 1e-4
 
     elif argv == '7':

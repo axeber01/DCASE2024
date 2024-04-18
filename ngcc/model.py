@@ -137,9 +137,25 @@ class NGCCPHAT(nn.Module):
         #        nn.LeakyReLU(0.2)) for i, k in enumerate(self.mlp_kernels)])
         
 
-        self.final_conv = nn.Conv1d(num_channels, num_out_channels, kernel_size=self.final_kernel)
-        self.spec_conv = nn.Conv1d(num_channels, num_out_channels, kernel_size=self.final_kernel, stride=self.final_kernel)
-        self.cc_drop = nn.Dropout(0.5)
+        self.final_conv = nn.Sequential(
+                nn.Conv1d(num_channels, num_out_channels, kernel_size=self.final_kernel),
+                nn.BatchNorm1d(num_out_channels),
+                nn.GELU()
+        )
+        self.spec_conv = nn.Sequential(
+                nn.Conv1d(num_channels, num_out_channels, kernel_size=self.final_kernel, stride=self.final_kernel),
+                nn.BatchNorm1d(num_out_channels),
+                nn.GELU()
+        )
+        
+        self.cc_proj = nn.Sequential(
+                nn.Linear(max_tau*2+1, self.n_mel_bins // 2),
+                nn.LayerNorm(self.n_mel_bins // 2),
+                nn.GELU(),
+                nn.Dropout(0.5),
+                nn.Linear(self.n_mel_bins // 2, self.n_mel_bins)
+        )
+        #self.cc_drop = nn.Dropout(0.5)
 
         #self.spec_conv = nn.Sequential(
                 #nn.Conv1d(num_channels, num_out_channels, self.final_kernel),
@@ -206,7 +222,7 @@ class NGCCPHAT(nn.Module):
 
         cc = torch.stack(cc, dim=-1) # (batch_size, #time_windows, channels, #delays, #combinations)
         cc = cc.permute(0, 4, 1, 2, 3) # (batch_size, #combinations, #time_windows, channels, #delays)
-        cc = cc[:, :, :, :, 1:] #throw away one dely to make #delays even
+        #cc = cc[:, :, :, :, 1:] #throw away one dely to make #delays even
 
         B, N, _, C, tau = cc.shape
         cc = cc.reshape(-1, C, tau)
@@ -227,7 +243,8 @@ class NGCCPHAT(nn.Module):
         cc = cc.reshape(B, N, T, C, tau)
         cc = cc.permute(0, 1, 3, 2, 4)  # (batch_size, #combinations, channels, #time_windows, #delays)
         cc = cc.reshape(B, N * C, T, tau) # (batch_size, #combinations * channels, #time_windows, #delays)
-        cc = self.cc_drop(cc)
+        cc = self.cc_proj(cc)
+        #cc = self.cc_drop(cc)
 
         if self.normalize_output:
             cc /= cc.std(dim=-1, keepdims=True)

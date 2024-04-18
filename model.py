@@ -32,9 +32,9 @@ class NGCCModel(torch.nn.Module):
         self.sig_len = int(self.fs * params['hop_len_s']) # 480 samples
         self.in_channels = int(self.ngcc_out_channels * params['n_mics'] * ( 1 + (params['n_mics'] - 1) / 2))
 
-        self.ngcc = NGCCPHAT(max_tau=self.mel_bins//2, n_mel_bins=self.mel_bins , use_sinc=True,
+        self.ngcc = NGCCPHAT(max_tau=6, n_mel_bins=self.mel_bins , use_sinc=True,
                                         sig_len=self.sig_len , num_channels=self.ngcc_channels, num_out_channels=self.ngcc_out_channels, fs=self.fs,
-                                        normalize_input=False, normalize_output=False, pool_len=params['t_pool_size'][0], use_mel=params['use_mel'])
+                                        normalize_input=False, normalize_output=False, pool_len=1, use_mel=params['use_mel'])
 
         self.nb_classes = params['unique_classes']
         self.params=params
@@ -42,7 +42,7 @@ class NGCCModel(torch.nn.Module):
         if len(params['f_pool_size']):
             for conv_cnt in range(len(params['f_pool_size'])):
                 self.conv_block_list.append(ConvBlock(in_channels=params['nb_cnn2d_filt'] if conv_cnt else self.in_channels, out_channels=params['nb_cnn2d_filt']))
-                self.conv_block_list.append(nn.MaxPool2d((1, params['f_pool_size'][conv_cnt])))
+                self.conv_block_list.append(nn.MaxPool2d((params['t_pool_size'][conv_cnt], params['f_pool_size'][conv_cnt])))
                 self.conv_block_list.append(nn.Dropout2d(p=params['dropout_rate']))
 
         self.gru_input_dim = params['nb_cnn2d_filt'] * int(np.floor(self.mel_bins / np.prod(params['f_pool_size'])))
