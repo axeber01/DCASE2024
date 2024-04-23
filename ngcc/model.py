@@ -166,8 +166,10 @@ class NGCCPHAT(nn.Module):
 
         
         if self.use_mel:
-            self.nfft = next_greater_power_of_2(sig_len)
-            self.mel_transform = torchaudio.transforms.MelScale(n_mels=self.n_mel_bins, sample_rate=fs, n_stft=self.nfft//2+1)
+            self.nfft = next_greater_power_of_2(2 * sig_len)
+            self.spec_transform = torchaudio.transforms.Spectrogram(n_fft=self.nfft, win_length=2*sig_len, hop_length=sig_len, normalized=True)
+            self.mel_transform = torchaudio.transforms.MelScale(n_mels=self.n_mel_bins, sample_rate=fs, n_stft=self.nfft//2+1, norm='slaney')
+            self.to_db = torchaudio.transforms.AmplitudeToDB(stype="power", top_db=80)
 
         else:
             in_size = sig_len // self.final_kernel
@@ -196,7 +198,6 @@ class NGCCPHAT(nn.Module):
         #padding = get_pad(
         #    size=s, kernel_size=self.final_kernel, stride=1, dilation=1)
         #x_spec = F.pad(x, pad=padding, mode='constant')
-        x_spec = self.spec_conv(x)
 
         _, C, _ = x.shape
         #T = int(T / self.pool_len)
@@ -204,9 +205,11 @@ class NGCCPHAT(nn.Module):
         x_cc = x.reshape(B, M, C, T*L) # (batch_size, #mics, channels, #time_windows * win_len)
         x_cc = x.reshape(B, M, C, T, L).permute(0, 1, 3, 2, 4) # (batch_size, #mics, #time_windows, channels, win_len)
 
-        _, C_spec, _ = x_spec.shape
-        x_spec = x_spec.reshape(B, M, C_spec, T*L_spec) # (batch_size, #mics, channels, #time_windows * win_len)
-        x_spec = x_spec.reshape(B, M, C_spec, T, L_spec).permute(0, 1, 3, 2, 4) # (batch_size, #mics, #time_windows, channels, win_len)
+        if not self.use_mel:
+            x_spec = self.spec_conv(x)
+            _, C_spec, _ = x_spec.shape
+            x_spec = x_spec.reshape(B, M, C_spec, T*L_spec) # (batch_size, #mics, channels, #time_windows * win_len)
+            x_spec = x_spec.reshape(B, M, C_spec, T, L_spec).permute(0, 1, 3, 2, 4) # (batch_size, #mics, #time_windows, channels, win_len)
 
         cc = [] 
         # compute gcc-phat for pairwise microphone combinations
@@ -250,19 +253,24 @@ class NGCCPHAT(nn.Module):
             cc /= cc.std(dim=-1, keepdims=True)
 
         # compute log mel-spectrograms from x
-        x_spec = x_spec.permute(0, 1, 3, 2, 4) # (batch_size, #mics, channels, #time_windows, #delays)
-        x_spec = x_spec.reshape(B, M * C_spec, T, L_spec) # (batch_size, #mics * channels, #time_windows, #delays)
         
         if self.use_mel:
-            X = torch.fft.rfft(x_spec, n=self.nfft, norm='ortho', dim=-1) # (batch_size, ##mics * channels, #time_windows, #freqs)
+            B, M, T, L = audio.shape
+            audio_in = audio.reshape(B, M, T*L) #(batch, mics, time)
+            mag_spectra = self.spec_transform(audio_in)[:, :, :, :T] # (batch, mics, freq, time)
 
-            mag_spectra = torch.abs(X)**2 # 
-            mel_spectra = self.mel_transform(mag_spectra.permute(0,1,3,2)).permute(0,1,3,2)
+            mel_spectra = self.mel_transform(mag_spectra) # (batch, mics, #mel_weights, time)
+            mel_spectra = self.to_db (mel_spectra)
+            mel_spectra = mel_spectra.permute(0, 1, 3, 2) # (batch, mics, time, #mel_weights)
+
+            feat = torch.cat((mel_spectra, cc), dim=1)
         else:
+            x_spec = x_spec.permute(0, 1, 3, 2, 4) # (batch_size, #mics, channels, #time_windows, #delays)
+            x_spec = x_spec.reshape(B, M * C_spec, T, L_spec) # (batch_size, #mics * channels, #time_windows, #delays)
             mel_spectra = self.proj(x_spec)
 
-        # here, #mel_weights must be equal to #delays for this to work
-        feat = torch.cat((mel_spectra, cc), dim=1) # (batch_size, ##mics * channels + #combinations, #time_windows, #mel_weights)
+            # here, #mel_weights must be equal to #delays for this to work
+            feat = torch.cat((mel_spectra, cc), dim=1) # (batch_size, ##mics * channels + #combinations, #time_windows, #mel_weights)
 
         # pool over time
         feat = self.pool(feat)
