@@ -88,7 +88,8 @@ class GCC(nn.Module):
 class NGCCPHAT(nn.Module):
     def __init__(self, max_tau=64, n_mel_bins=64, use_sinc=True,
                                         sig_len=960, num_channels=128, num_out_channels=8, fs=24000,
-                                        normalize_input=True, normalize_output=False, pool_len=5, use_mel=True):
+                                        normalize_input=True, normalize_output=False, pool_len=5, use_mel=True,
+                                        tracks=5, predict_tdoa=False):
         super().__init__()
 
         '''
@@ -108,6 +109,8 @@ class NGCCPHAT(nn.Module):
         self.pool_len = pool_len
         self.n_mel_bins = n_mel_bins
         self.use_mel = use_mel
+        self.tracks=tracks
+        self.predict_tdoa = predict_tdoa
 
         sincnet_params = {'input_dim': sig_len,
                           'fs': fs,
@@ -142,6 +145,14 @@ class NGCCPHAT(nn.Module):
                 nn.BatchNorm1d(num_out_channels),
                 nn.GELU()
         )
+
+        if self.predict_tdoa:
+            self.tdoa_conv = nn.Sequential(
+                nn.Conv1d(num_channels, tracks, kernel_size=self.final_kernel),
+                nn.BatchNorm1d(tracks),
+                nn.GELU()
+            )
+
         self.spec_conv = nn.Sequential(
                 nn.Conv1d(num_channels, num_out_channels, kernel_size=self.final_kernel, stride=self.final_kernel),
                 nn.BatchNorm1d(num_out_channels),
@@ -242,6 +253,19 @@ class NGCCPHAT(nn.Module):
         cc = F.pad(cc, pad=padding, mode='constant')
         cc = self.final_conv(cc)
 
+        if self.predict_tdoa:
+            s = cc.shape[2]
+            padding = get_pad(
+                size=s, kernel_size=self.final_kernel, stride=1, dilation=1)
+            cc_out = F.pad(cc, pad=padding, mode='constant')
+            cc_out = self.tdoa_conv(cc_out)
+
+            _, C, tau = cc_out.shape
+            cc_out = cc_out.reshape(B, N, T, self.tracks, tau)
+
+            #(B, T, 13, Tr, ntdoa)
+            cc_out = cc_out.permute(0, 2, 4, 3, 1)
+
         _, C, tau = cc.shape
         cc = cc.reshape(B, N, T, C, tau)
         cc = cc.permute(0, 1, 3, 2, 4)  # (batch_size, #combinations, channels, #time_windows, #delays)
@@ -275,7 +299,10 @@ class NGCCPHAT(nn.Module):
         # pool over time
         feat = self.pool(feat)
 
-        return feat
+        if self.predict_tdoa:
+            return feat, cc_out
+        else:
+            return feat
 
 
 

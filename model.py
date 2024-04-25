@@ -30,14 +30,17 @@ class NGCCModel(torch.nn.Module):
         self.mel_bins = params['nb_mel_bins']
         self.fs = params['fs']
         self.sig_len = int(self.fs * params['hop_len_s']) # 480 samples
+        self.predict_tdoa = params['predict_tdoa']
+        self.pool_len = int(params['t_pool_size'][0])
         if params['use_mel']:
             self.in_channels = int(self.ngcc_out_channels * params['n_mics'] * (params['n_mics'] - 1) / 2 +  params['n_mics'])
         else:
             self.in_channels = int(self.ngcc_out_channels * params['n_mics'] * ( 1 + (params['n_mics'] - 1) / 2))
 
-        self.ngcc = NGCCPHAT(max_tau=6, n_mel_bins=self.mel_bins , use_sinc=True,
+        self.ngcc = NGCCPHAT(max_tau=params['max_tau'], n_mel_bins=self.mel_bins , use_sinc=True,
                                         sig_len=self.sig_len , num_channels=self.ngcc_channels, num_out_channels=self.ngcc_out_channels, fs=self.fs,
-                                        normalize_input=False, normalize_output=False, pool_len=1, use_mel=params['use_mel'])
+                                        normalize_input=False, normalize_output=False, pool_len=1, use_mel=params['use_mel'],
+                                        predict_tdoa=params['predict_tdoa'])
 
         self.nb_classes = params['unique_classes']
         self.params=params
@@ -77,7 +80,10 @@ class NGCCModel(torch.nn.Module):
     def forward(self, x, vid_feat=None):
         """input: (batch_size, mic_channels, time_steps, sig_len)"""
 
-        x = self.ngcc(x)
+        if self.predict_tdoa:
+            x, tdoa = self.ngcc(x)
+        else:
+            x = self.ngcc(x)
 
         for conv_cnt in range(len(self.conv_block_list)):
             x = self.conv_block_list[conv_cnt](x)
@@ -111,5 +117,8 @@ class NGCCModel(torch.nn.Module):
         doa2 = torch.cat((doa1, dist), dim=3)
 
         doa2 = doa2.reshape((doa.size(0), doa.size(1), -1))
-        return doa2
+        if self.predict_tdoa:
+            return doa2, tdoa[:, ::self.pool_len] # pool tdoas to get correct resolution
+        else:
+            return doa2
     

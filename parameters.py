@@ -146,6 +146,9 @@ def get_params(argv='1'):
         params['saved_chunks'] = False
         params['use_mel'] = False
         params['nb_epochs'] = 1000
+        params['predict_tdoa'] = True
+        params['lambda'] = 0.5
+        params['max_tau'] = 6
         #params['lr'] = 1e-4
 
     elif argv == '7':

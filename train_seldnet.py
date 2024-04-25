@@ -21,6 +21,95 @@ from cls_compute_seld_results import ComputeSELDResults, reshape_3Dto2D
 from SELD_evaluation_metrics import distance_between_cartesian_coordinates
 import seldnet_model 
 from model import NGCCModel
+from speechbrain.nnet.losses import PitWrapper 
+
+def deg2rad(deg):
+    return deg * 2 * np.pi / 360
+
+
+def rad2deg(rad):
+    return rad * 360 / (2 * np.pi)
+
+def center_mic_coords(mic_coords, mic_center):
+    mic_locs = np.empty((0, 3))
+    for coord in mic_coords:
+        rad, azi, ele = coord
+        azi = deg2rad(azi)
+        ele = deg2rad(ele)
+        x_offset = rad * np.cos(azi) * np.cos(ele)
+        y_offset = rad * np.sin(azi) * np.cos(ele)
+        z_offset = rad * np.sin(ele)
+        mic_loc = mic_center + np.array([x_offset, y_offset, z_offset])
+        mic_locs = np.vstack([mic_locs, mic_loc])
+    return mic_locs
+
+
+class TdoaLoss(nn.Module):
+    def __init__(self, fs=24000, c=343, nmics=4, ntdoas=6, max_tau=6):
+        super(TdoaLoss, self).__init__()
+        loss_module = nn.CrossEntropyLoss(ignore_index=-100, reduction='none')
+        self.pit_loss = PitWrapper(loss_module)
+        self.fs = fs
+        self.c = c
+        self.nmics = nmics
+        self.ntdoas = ntdoas
+        self.max_tau = max_tau
+        self.tracks = 5
+
+        m1_coords = [0.042, 45, 35]
+        m2_coords = [0.042, -45, -35]
+        m3_coords = [0.042, 135, -35]
+        m4_coords = [0.042, -135, 35]
+
+        mic_coords = [m1_coords, m2_coords, m3_coords, m4_coords]
+        mic_center = [0.0, 0.0, 0.0]
+
+        self.mic_locs = torch.Tensor(center_mic_coords(mic_coords, mic_center))
+
+    def get_tdoa_target(self, target):
+        B, T, _, F, C = target.shape
+        Tr = self.tracks
+        tdoas = torch.zeros((B, T, Tr, self.ntdoas))
+        tdoas[:] = torch.nan
+        ignore_idx = int(-100)
+        max_tau = int(self.max_tau)
+        for b in range(B):
+            for t in range(T):
+                tr_cnt = 0
+                any_active = False
+                for tr in range(Tr):
+                    for c in range(C):
+                        active = target[b, t, tr, 0, c]
+                        if active:
+                            any_active = True
+                            doa = target[b, t, tr, 1:4, c].squeeze()
+                            dist = target[b, t, tr, 4, c]
+                            source_loc = doa * dist
+                            cnt = 0
+                            for m1 in range(self.nmics):
+                                for m2 in range(m1+1, self.nmics):
+                                    mic1 = self.mic_locs[m1]
+                                    mic2 = self.mic_locs[m2]
+                                    tdoa = torch.sqrt(torch.sum((source_loc-mic1)**2)) - torch.sqrt(torch.sum((source_loc-mic2)**2))
+                                    tdoa = int(torch.round(tdoa*self.fs/self.c))
+                                    tdoas[b, t, tr_cnt, cnt] = tdoa+max_tau
+                                    cnt +=1
+                            tr_cnt +=1
+                if not any_active:
+                    tdoas[b, t, :, :] = ignore_idx
+                elif tr_cnt < Tr and any_active:
+                    tdoas[b, t, tr_cnt:, :] = ignore_idx# tdoas[b, t, tr_cnt-1, :]
+
+        return tdoas
+    
+    def forward(self, pred, target):
+
+        tdoa_target = self.get_tdoa_target(target)
+        B, T, C, Tr, ntdoa = pred.shape
+        tdoa_target = tdoa_target.permute(0, 1, 3, 2).reshape(B*T*ntdoa, Tr).long()  
+        pred = pred.permute(0, 1, 4, 2, 3).reshape(B*T*ntdoa, C, Tr)   
+        loss, _ = self.pit_loss(pred.unsqueeze(1), tdoa_target.unsqueeze(1))
+        return loss.mean()
 
 def get_accdoa_labels(accdoa_in, nb_classes):
     x, y, z = accdoa_in[:, :, :nb_classes], accdoa_in[:, :, nb_classes:2*nb_classes], accdoa_in[:, :, 2*nb_classes:]
@@ -70,7 +159,7 @@ def determine_similar_location(sed_pred0, sed_pred1, doa_pred0, doa_pred1, class
         return 0
 
 
-def test_epoch(data_generator, model, criterion, dcase_output_folder, params, device):
+def test_epoch(data_generator, model, criterion, dcase_output_folder, params, device, criterion_tdoa=None):
     # Number of frames for a 60 second audio with 100ms hop length = 600 frames
     # Number of frames in one batch (batch_size* sequence_length) consists of all the 600 frames above with zero padding in the remaining frames
     test_filelist = data_generator.get_filelist()
@@ -83,12 +172,21 @@ def test_epoch(data_generator, model, criterion, dcase_output_folder, params, de
             if len(values) == 2:
                 data, target = values
                 data, target = torch.tensor(data).to(device).float(), torch.tensor(target).to(device).float()
-                output = model(data)
+                if criterion_tdoa is not None:
+                    output, output_tdoa = model(data)
+                else:
+                    output = model(data)
             elif len(values) == 3:
                 data, vid_feat, target = values
                 data, vid_feat, target = torch.tensor(data).to(device).float(), torch.tensor(vid_feat).to(device).float(), torch.tensor(target).to(device).float()
                 output = model(data, vid_feat)
-            loss = criterion(output, target)
+
+            if criterion_tdoa is not None:
+                loss1 = criterion(output, target)
+                loss2 = criterion_tdoa(output_tdoa, target)
+                loss = (1.0 - params['lambda']) * loss1 + params['lambda'] * loss2
+            else:
+                loss = criterion(output, target)
 
             if params['multi_accdoa'] is True:
                 sed_pred0, doa_pred0, dist_pred0, sed_pred1, doa_pred1, dist_pred1, sed_pred2, doa_pred2, dist_pred2 = get_multi_accdoa_labels(output.detach().cpu().numpy(), params['unique_classes'])
@@ -179,7 +277,7 @@ def test_epoch(data_generator, model, criterion, dcase_output_folder, params, de
     return test_loss
 
 
-def train_epoch(data_generator, optimizer, model, criterion, params, device):
+def train_epoch(data_generator, optimizer, model, criterion, params, device, criterion_tdoa):
     nb_train_batches, train_loss = 0, 0.
     model.train()
 
@@ -198,7 +296,10 @@ def train_epoch(data_generator, optimizer, model, criterion, params, device):
                 data[:, :params['n_mics']] = train_transform(spec).permute(0, 1, 3, 2)
             
             optimizer.zero_grad()
-            output = model(data)
+            if criterion_tdoa is not None:
+                output, output_tdoa = model(data)
+            else:
+                output = model(data)
         elif len(values) == 3:
             data, vid_feat, target = values
             data, vid_feat, target = torch.tensor(data).to(device).float(), torch.tensor(vid_feat).to(device).float(), torch.tensor(target).to(device).float()
@@ -209,8 +310,13 @@ def train_epoch(data_generator, optimizer, model, criterion, params, device):
 
             optimizer.zero_grad()
             output = model(data, vid_feat)
-
-        loss = criterion(output, target)
+                    
+        if criterion_tdoa is not None:
+            loss1 = criterion(output, target)
+            loss2 = criterion_tdoa(output_tdoa, target)
+            loss = (1.0 - params['lambda']) * loss1 + params['lambda'] * loss2
+        else:
+            loss = criterion(output, target)
         loss.backward()
         optimizer.step()
         
@@ -379,6 +485,10 @@ def main(argv):
         cls_feature_class.delete_and_create_folder(dcase_output_val_folder)
         log_string('Dumping recording-wise val results in: {}'.format(dcase_output_val_folder))
 
+        if params['predict_tdoa']:
+            criterion_tdoa = TdoaLoss(fs=params['fs'], max_tau=params['max_tau'])
+        else:
+            criterion_tdoa = None
         
 
         # Initialize evaluation metric class
@@ -422,7 +532,7 @@ def main(argv):
             # TRAINING
             # ---------------------------------------------------------------------
             start_time = time.time()
-            train_loss = train_epoch(data_gen_train, optimizer, model, criterion, params, device)
+            train_loss = train_epoch(data_gen_train, optimizer, model, criterion, params, device, criterion_tdoa)
             scheduler.step()
             train_time = time.time() - start_time
             # ---------------------------------------------------------------------
@@ -431,7 +541,7 @@ def main(argv):
 
             if (epoch_cnt > 0 and epoch_cnt % params['eval_freq'] == 0) or epoch_cnt == nb_epoch-1:
                 start_time = time.time()
-                val_loss = test_epoch(data_gen_val, model, criterion, dcase_output_val_folder, params, device)
+                val_loss = test_epoch(data_gen_val, model, criterion, dcase_output_val_folder, params, device, criterion_tdoa)
                 # Calculate the DCASE 2021 metrics - Location-aware detection and Class-aware localization scores
 
                 val_ER, val_F, val_LE, val_dist_err, val_rel_dist_err, val_LR, val_seld_scr, classwise_val_scr = score_obj.get_SELD_Results(dcase_output_val_folder)
@@ -482,7 +592,7 @@ def main(argv):
         log_string('Dumping recording-wise test results in: {}'.format(dcase_output_test_folder))
 
 
-        test_loss = test_epoch(data_gen_test, model, criterion, dcase_output_test_folder, params, device)
+        test_loss = test_epoch(data_gen_test, model, criterion, dcase_output_test_folder, params, device, criterion_tdoa)
 
         use_jackknife=True
         test_ER, test_F, test_LE, test_dist_err, test_rel_dist_err, test_LR, test_seld_scr, classwise_test_scr = score_obj.get_SELD_Results(dcase_output_test_folder, is_jackknife=use_jackknife )
