@@ -45,7 +45,7 @@ def center_mic_coords(mic_coords, mic_center):
 
 
 class TdoaLoss(nn.Module):
-    def __init__(self, fs=24000, c=343, nmics=4, ntdoas=6, max_tau=6):
+    def __init__(self, fs=24000, c=343, nmics=4, ntdoas=6, max_tau=6, tracks=5):
         super(TdoaLoss, self).__init__()
         loss_module = nn.CrossEntropyLoss(ignore_index=-100, reduction='none')
         self.pit_loss = PitWrapper(loss_module)
@@ -54,7 +54,7 @@ class TdoaLoss(nn.Module):
         self.nmics = nmics
         self.ntdoas = ntdoas
         self.max_tau = max_tau
-        self.tracks = 5
+        self.tracks = tracks 
 
         m1_coords = [0.042, 45, 35]
         m2_coords = [0.042, -45, -35]
@@ -68,7 +68,7 @@ class TdoaLoss(nn.Module):
 
     def get_tdoa_target(self, target):
         B, T, _, F, C = target.shape
-        Tr = self.tracks
+        Tr = 5 # up to 5 events simultaneously #self.tracks
         tdoas = torch.zeros((B, T, Tr, self.ntdoas))
         tdoas[:] = torch.nan
         ignore_idx = int(-100)
@@ -79,6 +79,8 @@ class TdoaLoss(nn.Module):
                 any_active = False
                 for tr in range(Tr):
                     for c in range(C):
+                        if tr_cnt >= self.tracks:
+                            break
                         active = target[b, t, tr, 0, c]
                         if active:
                             any_active = True
@@ -100,16 +102,35 @@ class TdoaLoss(nn.Module):
                 elif tr_cnt < Tr and any_active:
                     tdoas[b, t, tr_cnt:, :] = ignore_idx# tdoas[b, t, tr_cnt-1, :]
 
-        return tdoas
+        return tdoas[:, :, :self.tracks]
     
     def forward(self, pred, target):
-
+        self.mic_locs = self.mic_locs.to(target.device)
+        #print("calculating target")
         tdoa_target = self.get_tdoa_target(target)
         B, T, C, Tr, ntdoa = pred.shape
-        tdoa_target = tdoa_target.permute(0, 1, 3, 2).reshape(B*T*ntdoa, Tr).long()  
+        tdoa_target = tdoa_target.permute(0, 1, 3, 2).reshape(B*T*ntdoa, Tr).long().to(pred.device)  
         pred = pred.permute(0, 1, 4, 2, 3).reshape(B*T*ntdoa, C, Tr)   
-        loss, _ = self.pit_loss(pred.unsqueeze(1), tdoa_target.unsqueeze(1))
-        return loss.mean()
+        
+        loss, opt_p = self.pit_loss(pred.unsqueeze(1), tdoa_target.unsqueeze(1))
+        acc = 0.
+        n_pred = 0.
+        for b in range(tdoa_target.shape[0]):
+            this_pred = pred[b].argmax(dim=0, keepdim=False)
+            this_target = tdoa_target[b, list(opt_p[b])]
+            valid_idx = this_target!=-100
+            this_target = this_target[valid_idx]
+            this_pred = this_pred[valid_idx]
+            if not this_pred.nelement() == 0:
+                acc += this_pred.eq(this_target.view_as(this_pred)).float().sum().item()
+                n_pred += this_pred.nelement()
+        
+        if n_pred > 0:
+            acc = acc / n_pred
+        else:
+            acc = 0.
+
+        return loss.mean(), acc
 
 def get_accdoa_labels(accdoa_in, nb_classes):
     x, y, z = accdoa_in[:, :, :nb_classes], accdoa_in[:, :, nb_classes:2*nb_classes], accdoa_in[:, :, 2*nb_classes:]
@@ -183,7 +204,7 @@ def test_epoch(data_generator, model, criterion, dcase_output_folder, params, de
 
             if criterion_tdoa is not None:
                 loss1 = criterion(output, target)
-                loss2 = criterion_tdoa(output_tdoa, target)
+                loss2, acc = criterion_tdoa(output_tdoa, target)
                 loss = (1.0 - params['lambda']) * loss1 + params['lambda'] * loss2
             else:
                 loss = criterion(output, target)
@@ -272,6 +293,7 @@ def test_epoch(data_generator, model, criterion, dcase_output_folder, params, de
             if params['quick_test'] and nb_test_batches == 4:
                 break
 
+
         test_loss /= nb_test_batches
 
     return test_loss
@@ -286,6 +308,8 @@ def train_epoch(data_generator, optimizer, model, criterion, params, device, cri
             torchaudio.transforms.FrequencyMasking(7, iid_masks=True),
     )
 
+    tdoa_loss_ma = -1
+    tdoa_acc_ma = -1
     for values in data_generator.generate():
         # load one batch of data
         if len(values) == 2:
@@ -313,7 +337,15 @@ def train_epoch(data_generator, optimizer, model, criterion, params, device, cri
                     
         if criterion_tdoa is not None:
             loss1 = criterion(output, target)
-            loss2 = criterion_tdoa(output_tdoa, target)
+            loss2, acc = criterion_tdoa(output_tdoa, target)
+            if tdoa_loss_ma == -1:
+                tdoa_loss_ma = loss2.item()
+                tdoa_acc_ma = acc
+            else:
+                tdoa_loss_ma = 0.95 * tdoa_loss_ma + 0.05 * loss2.item()
+                if acc > 0:
+                    tdoa_acc_ma = 0.95 * tdoa_acc_ma + 0.05 * acc
+            print("tdoa loss: " + str(tdoa_loss_ma)+ ", tdoa acc: " + str(tdoa_acc_ma), flush=True)
             loss = (1.0 - params['lambda']) * loss1 + params['lambda'] * loss2
         else:
             loss = criterion(output, target)
@@ -324,6 +356,7 @@ def train_epoch(data_generator, optimizer, model, criterion, params, device, cri
         nb_train_batches += 1
         if params['quick_test'] and nb_train_batches == 4:
             break
+
 
     train_loss /= nb_train_batches
 
@@ -422,6 +455,7 @@ def main(argv):
             task_id, job_id, params['mode'], split_cnt, loc_output, loc_feat
         )
         model_name = '{}_model.h5'.format(os.path.join(params['model_dir'], unique_name))
+        model_name_final = '{}_model_final.h5'.format(os.path.join(params['model_dir'], unique_name))
         log_string("unique_name: {}\n".format(unique_name))
 
         # Load train and validation data
@@ -486,7 +520,7 @@ def main(argv):
         log_string('Dumping recording-wise val results in: {}'.format(dcase_output_val_folder))
 
         if params['predict_tdoa']:
-            criterion_tdoa = TdoaLoss(fs=params['fs'], max_tau=params['max_tau'])
+            criterion_tdoa = TdoaLoss(fs=params['fs'], max_tau=params['max_tau'], tracks=params['tracks'])
         else:
             criterion_tdoa = None
         
@@ -558,6 +592,10 @@ def main(argv):
                     patience_cnt = 0
                 else:
                     patience_cnt += params['eval_freq']
+
+                if epoch_cnt == nb_epoch - 1:
+                    log_string("saving final model")
+                    torch.save(model.state_dict(), model_name_final)
 
             # Print stats
             log_string(

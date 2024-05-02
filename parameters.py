@@ -15,9 +15,13 @@ def get_params(argv='1'):
 
         # INPUT PATH
         dataset_dir='./data_2024/',  # Base folder containing the foa/mic and metadata folders
+        #dataset_dir='./sim_20_rooms/',
+        #dataset_dir='./data_2024_aug/',
 
         # OUTPUT PATHS
         feat_label_dir='./data_2024/seld_feat_label/',  # Directory to dump extracted features and labels
+        #feat_label_dir='./sim_20_rooms/seld_feat_label/',
+        #feat_label_dir='./data_2024_aug/seld_feat_label/',
 
         model_dir='models',  # Dumps the trained models and training curves in this folder
         dcase_output_dir='results',  # recording-wise results are dumped in this path.
@@ -47,8 +51,8 @@ def get_params(argv='1'):
         thresh_unify=15,    # Required for Multi-ACCDOA only. Threshold of unification for inference in degrees.
 
         # DNN MODEL PARAMETERS
-        label_sequence_length=50,    # Feature sequence length
-        batch_size=64,              # Batch size
+        label_sequence_length=1,    # Feature sequence length
+        batch_size=256,              # Batch size
         eval_batch_size=64,
         dropout_rate=0.05,           # Dropout rate, constant for all layers
         nb_cnn2d_filt=64,           # Number of CNN nodes, constant for each layer
@@ -118,7 +122,6 @@ def get_params(argv='1'):
         params['use_salsalite'] = False
         params['multi_accdoa'] = True
         params['n_mics'] = 4
-        params['nb_epochs'] = 1000
         params['batch_size'] = 128
 
     elif argv == '8':
@@ -131,8 +134,8 @@ def get_params(argv='1'):
         params['multi_accdoa'] = True
         params['n_mics'] = 4
 
-    elif argv == '9':
-        print("RAW AUDIO CHUNKS w/ NGCC model + multi ACCDOA\n")
+    elif argv == '9': # TDOA pre-training
+        print("RAW AUDIO CHUNKS w/ NGCC model + multi ACCDOA, TDOA-pretraining\n")
         params['raw_chunks'] = True
         params['pretrained_model_weights'] = 'blah.h5'
         params['quick_test'] = False
@@ -141,15 +144,36 @@ def get_params(argv='1'):
         params['multi_accdoa'] = True
         params['n_mics'] = 4
         params['model'] = 'ngccmodel'
-        params['ngcc_channels'] = 16
-        params['ngcc_out_channels'] = 16
-        params['saved_chunks'] = False
+        params['ngcc_channels'] = 32
+        params['ngcc_out_channels'] = 16 
+        params['saved_chunks'] = True
         params['use_mel'] = False
-        params['nb_epochs'] = 1000
+        params['nb_epochs'] = 1
         params['predict_tdoa'] = True
-        params['lambda'] = 0.5
+        params['lambda'] = 1.0 # set to 1.0 to only train tdoa, and 0.0 to only train SELD
         params['max_tau'] = 6
-        #params['lr'] = 1e-4
+        params['tracks'] = 3
+
+elif argv == '10': # TDOA pre-training
+        print("RAW AUDIO CHUNKS w/ NGCC model + multi ACCDOA, pre-trained TDOA features\n")
+        params['finetune_mode'] = True
+        params['raw_chunks'] = True
+        params['pretrained_model_weights'] = '9_ngccphat-6delays-tdoa_dev_split0_multiaccdoa_mic_gcc_model_final.h5'
+        params['quick_test'] = False
+        params['dataset'] = 'mic'
+        params['use_salsalite'] = False
+        params['multi_accdoa'] = True
+        params['n_mics'] = 4
+        params['model'] = 'ngccmodel'
+        params['ngcc_channels'] = 32
+        params['ngcc_out_channels'] = 16
+        params['saved_chunks'] = True
+        params['use_mel'] = False
+        params['nb_epochs'] = 250
+        params['predict_tdoa'] = False
+        params['lambda'] = 0.0 # set to 1.0 to only train tdoa, and 0.0 to only train SELD
+        params['max_tau'] = 6
+        params['tracks'] = 3
 
     elif argv == '7':
         print("MIC + SALSA + multi ACCDOA\n")
@@ -182,6 +206,8 @@ def get_params(argv='1'):
     elif '2023' in params['dataset_dir']:
         params['unique_classes'] = 13
     elif '2024' in params['dataset_dir']:
+        params['unique_classes'] = 13
+    elif 'sim' in params['dataset_dir']:
         params['unique_classes'] = 13
 
     for key, value in params.items():

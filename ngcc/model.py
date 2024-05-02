@@ -114,30 +114,30 @@ class NGCCPHAT(nn.Module):
 
         sincnet_params = {'input_dim': sig_len,
                           'fs': fs,
-                          'cnn_N_filt': [num_channels],
-                          'cnn_len_filt': [sig_len-1],
-                          'cnn_max_pool_len': [1],
+                          'cnn_N_filt': [num_channels, num_channels, num_channels, num_channels],
+                          'cnn_len_filt': [sig_len-1, 11, 9, 7],
+                          'cnn_max_pool_len': [1, 1, 1, 1],
                           'cnn_use_laynorm_inp': False,
                           'cnn_use_batchnorm_inp': False,
-                          'cnn_use_laynorm': [False],
-                          'cnn_use_batchnorm': [True],
-                          'cnn_act': ['linear'],
-                          'cnn_drop': [0.0],
+                          'cnn_use_laynorm': [False, False, False, False],
+                          'cnn_use_batchnorm': [True, True, True, True],
+                          'cnn_act': ['leaky_relu', 'leaky_relu', 'leaky_relu', 'linear'],
+                          'cnn_drop': [0.0, 0.0, 0.0, 0.0],
                           'use_sinc': use_sinc,
-                          }
+                          } 
 
         self.backbone = SincNet(sincnet_params)
         self.pool = torch.nn.AvgPool2d((pool_len, 1)) # torch.nn.AvgPool1d(pool_len)
-        #self.mlp_kernels = [11, 9, 7]
-        #self.channels = [num_channels, num_channels, num_channels, num_channels]
+        self.mlp_kernels = [11, 9, 7]
+        self.channels = [num_channels, num_channels, num_channels, num_channels]
         self.final_kernel = 3
 
         self.gcc = GCC(max_tau=self.max_tau, dim=4, filt='phat')
 
-        #self.mlp = nn.ModuleList([nn.Sequential(
-        #        nn.Conv1d(self.channels[i], self.channels[i+1], kernel_size=k),
-        #        nn.BatchNorm1d(self.channels[i+1]),
-        #        nn.LeakyReLU(0.2)) for i, k in enumerate(self.mlp_kernels)])
+        self.mlp = nn.ModuleList([nn.Sequential(
+                nn.Conv1d(self.channels[i], self.channels[i+1], kernel_size=k),
+                nn.BatchNorm1d(self.channels[i+1]),
+                nn.LeakyReLU(0.2)) for i, k in enumerate(self.mlp_kernels)])
         
 
         self.final_conv = nn.Sequential(
@@ -148,7 +148,7 @@ class NGCCPHAT(nn.Module):
 
         if self.predict_tdoa:
             self.tdoa_conv = nn.Sequential(
-                nn.Conv1d(num_channels, tracks, kernel_size=self.final_kernel),
+                nn.Conv1d(num_out_channels, tracks, kernel_size=self.final_kernel),
                 nn.BatchNorm1d(tracks),
                 nn.GELU()
             )
@@ -240,12 +240,12 @@ class NGCCPHAT(nn.Module):
 
         B, N, _, C, tau = cc.shape
         cc = cc.reshape(-1, C, tau)
-        #for k, layer in enumerate(self.mlp):
-        #    s = cc.shape[2]
-        #    padding = get_pad(
-        #        size=s, kernel_size=self.mlp_kernels[k], stride=1, dilation=1)
-        #    cc = F.pad(cc, pad=padding, mode='constant')
-        #    cc = layer(cc)
+        for k, layer in enumerate(self.mlp):
+            s = cc.shape[2]
+            padding = get_pad(
+                size=s, kernel_size=self.mlp_kernels[k], stride=1, dilation=1)
+            cc = F.pad(cc, pad=padding, mode='constant')
+            cc = layer(cc)
 
         s = cc.shape[2]
         padding = get_pad(
