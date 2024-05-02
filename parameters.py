@@ -51,7 +51,7 @@ def get_params(argv='1'):
         thresh_unify=15,    # Required for Multi-ACCDOA only. Threshold of unification for inference in degrees.
 
         # DNN MODEL PARAMETERS
-        label_sequence_length=1,    # Feature sequence length
+        label_sequence_length=250,    # Feature sequence length
         batch_size=256,              # Batch size
         eval_batch_size=64,
         dropout_rate=0.05,           # Dropout rate, constant for all layers
@@ -136,6 +136,7 @@ def get_params(argv='1'):
 
     elif argv == '9': # TDOA pre-training
         print("RAW AUDIO CHUNKS w/ NGCC model + multi ACCDOA, TDOA-pretraining\n")
+        params['label_sequence_length'] = 1 # use only one time frame for tdoa training
         params['raw_chunks'] = True
         params['pretrained_model_weights'] = 'blah.h5'
         params['quick_test'] = False
