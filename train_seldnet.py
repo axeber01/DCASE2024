@@ -22,6 +22,7 @@ from SELD_evaluation_metrics import distance_between_cartesian_coordinates
 import seldnet_model 
 from model import NGCCModel
 from speechbrain.nnet.losses import PitWrapper 
+from torch_audiomentations import AddColoredNoise
 
 def deg2rad(deg):
     return deg * 2 * np.pi / 360
@@ -192,11 +193,46 @@ def test_epoch(data_generator, model, criterion, dcase_output_folder, params, de
         for values in data_generator.generate():
             if len(values) == 2:
                 data, target = values
+                #print(data.shape)
+                #print(target.shape)
                 data, target = torch.tensor(data).to(device).float(), torch.tensor(target).to(device).float()
-                if criterion_tdoa is not None:
-                    output, output_tdoa = model(data)
+                bs = params['batch_size']
+                if data.shape[0] > bs:
+                    max_cnt = data.shape[0] // bs
+                    output = []
+                    output_tdoa = []
+                    for cnt in range(0, max_cnt):
+                        this_data = data[cnt*bs:(cnt+1)*bs]
+                        #print(this_data.shape)
+                        if criterion_tdoa is not None:
+                            this_output, this_output_tdoa = model(this_data)
+                            output.append(this_output)
+                            output_tdoa.append(this_output_tdoa)
+                        else:
+                            this_output = model(this_data)
+                            #print(this_output.shape)
+                            output.append(this_output)
+                    
+                    this_data = data[(cnt+1)*bs:]
+                    #print(this_data.shape)
+                    if criterion_tdoa is not None:
+                        this_output, this_output_tdoa = model(this_data)
+                        output.append(this_output)
+                        output_tdoa.append(this_output_tdoa)
+                        output_tdoa = torch.cat(output_tdoa, dim=0)
+                    else:
+                        this_output = model(this_data)
+                        #print(this_output.shape)
+                        output.append(this_output)
+                    
+                    output = torch.cat(output, dim=0)
+                    
+
                 else:
-                    output = model(data)
+                    if criterion_tdoa is not None:
+                        output, output_tdoa = model(data)
+                    else:
+                        output = model(data)
             elif len(values) == 3:
                 data, vid_feat, target = values
                 data, vid_feat, target = torch.tensor(data).to(device).float(), torch.tensor(vid_feat).to(device).float(), torch.tensor(target).to(device).float()
@@ -308,6 +344,8 @@ def train_epoch(data_generator, optimizer, model, criterion, params, device, cri
             torchaudio.transforms.FrequencyMasking(7, iid_masks=True),
     )
 
+    augment = AddColoredNoise(p=1.0, min_snr_in_db=5, max_snr_in_db=30, sample_rate=params['fs'], mode="per_channel", p_mode="per_channel")           
+
     tdoa_loss_ma = -1
     tdoa_acc_ma = -1
     for values in data_generator.generate():
@@ -315,9 +353,15 @@ def train_epoch(data_generator, optimizer, model, criterion, params, device, cri
         if len(values) == 2:
             data, target = values
             data, target = torch.tensor(data).to(device).float(), torch.tensor(target).to(device).float()
-            if params['specaugment']:
+            if params['specaugment'] and not params['raw_chunks']:
                 spec = data[:, :params['n_mics']].permute(0, 1, 3, 2)
                 data[:, :params['n_mics']] = train_transform(spec).permute(0, 1, 3, 2)
+            
+            if params['augment'] and params['raw_chunks']:
+                B, C, T, L = data.shape
+                data = data.permute(0, 2, 1, 3).reshape(-1, C, L)
+                data = augment(data)
+                data = data.reshape(B, T, C, L).permute(0, 2, 1, 3)
             
             optimizer.zero_grad()
             if criterion_tdoa is not None:
@@ -331,6 +375,12 @@ def train_epoch(data_generator, optimizer, model, criterion, params, device, cri
             if params['specaugment'] and not params['raw_chunks']:
                 spec = data[:, :params['n_mics']].permute(0, 1, 3, 2)
                 data[:, :params['n_mics']] = train_transform(spec).permute(0, 1, 3, 2)
+
+            if params['augment'] and params['raw_chunks']:
+                B, C, T, L = data.shape
+                data = data.permute(0, 2, 1, 3).reshape(-1, C, L)
+                data = augment(data)
+                data = data.reshape(B, T, C, L).permute(0, 2, 1, 3)
 
             optimizer.zero_grad()
             output = model(data, vid_feat)
@@ -566,6 +616,8 @@ def main(argv):
             # TRAINING
             # ---------------------------------------------------------------------
             start_time = time.time()
+            #device = torch.device('cuda')
+            #model = model.to(device)
             train_loss = train_epoch(data_gen_train, optimizer, model, criterion, params, device, criterion_tdoa)
             scheduler.step()
             train_time = time.time() - start_time
@@ -573,8 +625,10 @@ def main(argv):
             # VALIDATION
             # ---------------------------------------------------------------------
 
-            if (epoch_cnt > 0 and epoch_cnt % params['eval_freq'] == 0) or epoch_cnt == nb_epoch-1:
+            if (epoch_cnt > 0 and epoch_cnt % params['eval_freq'] == 0) or epoch_cnt == 0 or epoch_cnt == nb_epoch-1:
                 start_time = time.time()
+                #device = torch.device('cpu')
+                #model = model.to(device)
                 val_loss = test_epoch(data_gen_val, model, criterion, dcase_output_val_folder, params, device, criterion_tdoa)
                 # Calculate the DCASE 2021 metrics - Location-aware detection and Class-aware localization scores
 

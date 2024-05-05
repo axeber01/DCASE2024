@@ -89,7 +89,7 @@ class NGCCPHAT(nn.Module):
     def __init__(self, max_tau=64, n_mel_bins=64, use_sinc=True,
                                         sig_len=960, num_channels=128, num_out_channels=8, fs=24000,
                                         normalize_input=True, normalize_output=False, pool_len=5, use_mel=True,
-                                        tracks=5, predict_tdoa=False):
+                                        tracks=5, predict_tdoa=False, fixed_tdoa=False):
         super().__init__()
 
         '''
@@ -111,6 +111,7 @@ class NGCCPHAT(nn.Module):
         self.use_mel = use_mel
         self.tracks=tracks
         self.predict_tdoa = predict_tdoa
+        self.fixed_tdoa = fixed_tdoa
 
         sincnet_params = {'input_dim': sig_len,
                           'fs': fs,
@@ -199,22 +200,23 @@ class NGCCPHAT(nn.Module):
             audio /= audio.std(dim=-1, keepdims=True)
 
 
-        # filter signals 
-        B, M, T, L = audio.shape # (batch_size, #mics, #time_windows, win_len)
-        x = audio.reshape(-1, 1, T*L)
-        x = self.backbone(x)
-        #x = self.pool(x)
+        with torch.set_grad_enabled(not self.fixed_tdoa):
+            # filter signals 
+            B, M, T, L = audio.shape # (batch_size, #mics, #time_windows, win_len)
+            x = audio.reshape(-1, 1, T*L)
+            x = self.backbone(x)
+            #x = self.pool(x)
 
-        #s = x.shape[2]
-        #padding = get_pad(
-        #    size=s, kernel_size=self.final_kernel, stride=1, dilation=1)
-        #x_spec = F.pad(x, pad=padding, mode='constant')
+            #s = x.shape[2]
+            #padding = get_pad(
+            #    size=s, kernel_size=self.final_kernel, stride=1, dilation=1)
+            #x_spec = F.pad(x, pad=padding, mode='constant')
 
-        _, C, _ = x.shape
-        #T = int(T / self.pool_len)
-        L_spec = int(L // self.final_kernel)
-        x_cc = x.reshape(B, M, C, T*L) # (batch_size, #mics, channels, #time_windows * win_len)
-        x_cc = x.reshape(B, M, C, T, L).permute(0, 1, 3, 2, 4) # (batch_size, #mics, #time_windows, channels, win_len)
+            _, C, _ = x.shape
+            #T = int(T / self.pool_len)
+            L_spec = int(L // self.final_kernel)
+            x_cc = x.reshape(B, M, C, T*L) # (batch_size, #mics, channels, #time_windows * win_len)
+            x_cc = x.reshape(B, M, C, T, L).permute(0, 1, 3, 2, 4) # (batch_size, #mics, #time_windows, channels, win_len)
 
         if not self.use_mel:
             x_spec = self.spec_conv(x)
@@ -222,49 +224,50 @@ class NGCCPHAT(nn.Module):
             x_spec = x_spec.reshape(B, M, C_spec, T*L_spec) # (batch_size, #mics, channels, #time_windows * win_len)
             x_spec = x_spec.reshape(B, M, C_spec, T, L_spec).permute(0, 1, 3, 2, 4) # (batch_size, #mics, #time_windows, channels, win_len)
 
-        cc = [] 
-        # compute gcc-phat for pairwise microphone combinations
-        for m1 in range(0, M):
-            for m2 in range(m1+1, M):
+        with torch.set_grad_enabled(not self.fixed_tdoa):
+            cc = [] 
+            # compute gcc-phat for pairwise microphone combinations
+            for m1 in range(0, M):
+                for m2 in range(m1+1, M):
                 
-                y1 = x_cc[:, m1, :, :, :]
-                y2 = x_cc[:, m2, :, :, :]
-                cc1 = self.gcc(y1, y2) # (batch_size, #time_windows, channels, #delays)
-                #cc2 = torch.flip(cc1, dims=[-1]) # if we have cc(m1, m2), do we need cc(m2,m1)?
-                cc.append(cc1)
-                #cc.append(cc2)
+                    y1 = x_cc[:, m1, :, :, :]
+                    y2 = x_cc[:, m2, :, :, :]
+                    cc1 = self.gcc(y1, y2) # (batch_size, #time_windows, channels, #delays)
+                    #cc2 = torch.flip(cc1, dims=[-1]) # if we have cc(m1, m2), do we need cc(m2,m1)?
+                    cc.append(cc1)
+                    #cc.append(cc2)
 
-        cc = torch.stack(cc, dim=-1) # (batch_size, #time_windows, channels, #delays, #combinations)
-        cc = cc.permute(0, 4, 1, 2, 3) # (batch_size, #combinations, #time_windows, channels, #delays)
+            cc = torch.stack(cc, dim=-1) # (batch_size, #time_windows, channels, #delays, #combinations)
+            cc = cc.permute(0, 4, 1, 2, 3) # (batch_size, #combinations, #time_windows, channels, #delays)
         #cc = cc[:, :, :, :, 1:] #throw away one dely to make #delays even
 
-        B, N, _, C, tau = cc.shape
-        cc = cc.reshape(-1, C, tau)
-        for k, layer in enumerate(self.mlp):
-            s = cc.shape[2]
-            padding = get_pad(
-                size=s, kernel_size=self.mlp_kernels[k], stride=1, dilation=1)
-            cc = F.pad(cc, pad=padding, mode='constant')
-            cc = layer(cc)
+            B, N, _, C, tau = cc.shape
+            cc = cc.reshape(-1, C, tau)
+            for k, layer in enumerate(self.mlp):
+                s = cc.shape[2]
+                padding = get_pad(
+                    size=s, kernel_size=self.mlp_kernels[k], stride=1, dilation=1)
+                cc = F.pad(cc, pad=padding, mode='constant')
+                cc = layer(cc)
 
-        s = cc.shape[2]
-        padding = get_pad(
-            size=s, kernel_size=self.final_kernel, stride=1, dilation=1)
-        cc = F.pad(cc, pad=padding, mode='constant')
-        cc = self.final_conv(cc)
-
-        if self.predict_tdoa:
             s = cc.shape[2]
             padding = get_pad(
                 size=s, kernel_size=self.final_kernel, stride=1, dilation=1)
-            cc_out = F.pad(cc, pad=padding, mode='constant')
-            cc_out = self.tdoa_conv(cc_out)
+            cc = F.pad(cc, pad=padding, mode='constant')
+            cc = self.final_conv(cc)
 
-            _, C, tau = cc_out.shape
-            cc_out = cc_out.reshape(B, N, T, self.tracks, tau)
+            if self.predict_tdoa:
+                s = cc.shape[2]
+                padding = get_pad(
+                    size=s, kernel_size=self.final_kernel, stride=1, dilation=1)
+                cc_out = F.pad(cc, pad=padding, mode='constant')
+                cc_out = self.tdoa_conv(cc_out)
 
-            #(B, T, 13, Tr, ntdoa)
-            cc_out = cc_out.permute(0, 2, 4, 3, 1)
+                _, C, tau = cc_out.shape
+                cc_out = cc_out.reshape(B, N, T, self.tracks, tau)
+
+                #(B, T, 13, Tr, ntdoa)
+                cc_out = cc_out.permute(0, 2, 4, 3, 1)
 
         _, C, tau = cc.shape
         cc = cc.reshape(B, N, T, C, tau)

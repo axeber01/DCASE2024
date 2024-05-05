@@ -14,14 +14,14 @@ def get_params(argv='1'):
         pretrained_model_weights='3_1_dev_split0_multiaccdoa_foa_model.h5',
 
         # INPUT PATH
-        dataset_dir='./data_2024/',  # Base folder containing the foa/mic and metadata folders
+        #dataset_dir='./data_2024/',  # Base folder containing the foa/mic and metadata folders
         #dataset_dir='./sim_20_rooms/',
-        #dataset_dir='./data_2024_aug/',
+        dataset_dir='./data_2024_soundq_aug/',
 
         # OUTPUT PATHS
-        feat_label_dir='./data_2024/seld_feat_label/',  # Directory to dump extracted features and labels
+        #feat_label_dir='./data_2024/seld_feat_label/',  # Directory to dump extracted features and labels
         #feat_label_dir='./sim_20_rooms/seld_feat_label/',
-        #feat_label_dir='./data_2024_aug/seld_feat_label/',
+        feat_label_dir='./data_2024_soundq_aug/seld_feat_label/',
 
         model_dir='models',  # Dumps the trained models and training curves in this folder
         dcase_output_dir='results',  # recording-wise results are dumped in this path.
@@ -51,7 +51,7 @@ def get_params(argv='1'):
         thresh_unify=15,    # Required for Multi-ACCDOA only. Threshold of unification for inference in degrees.
 
         # DNN MODEL PARAMETERS
-        label_sequence_length=250,    # Feature sequence length
+        label_sequence_length=50,    # Feature sequence length
         batch_size=256,              # Batch size
         eval_batch_size=64,
         dropout_rate=0.05,           # Dropout rate, constant for all layers
@@ -74,6 +74,7 @@ def get_params(argv='1'):
         final_lr=1e-5, # final learning rate in cosine scheduler
         weight_decay=0.0,
         specaugment=False,
+        augment=False,
 
         # METRIC
         average='macro',                 # Supports 'micro': sample-wise average and 'macro': class-wise average,
@@ -154,12 +155,14 @@ def get_params(argv='1'):
         params['lambda'] = 1.0 # set to 1.0 to only train tdoa, and 0.0 to only train SELD
         params['max_tau'] = 6
         params['tracks'] = 3
+        params['fixed_tdoa'] = False
+        params['augment'] = False
 
-elif argv == '10': # TDOA pre-training
+    elif argv == '10': # fine-tuning from tdoa-pretrained model
         print("RAW AUDIO CHUNKS w/ NGCC model + multi ACCDOA, pre-trained TDOA features\n")
         params['finetune_mode'] = True
         params['raw_chunks'] = True
-        params['pretrained_model_weights'] = '9_ngccphat-6delays-tdoa_dev_split0_multiaccdoa_mic_gcc_model_final.h5'
+        params['pretrained_model_weights'] = 'models_audio/9_ngccphat-6delays-tdoa_dev_split0_multiaccdoa_mic_gcc_model_final.h5'
         params['quick_test'] = False
         params['dataset'] = 'mic'
         params['use_salsalite'] = False
@@ -170,11 +173,18 @@ elif argv == '10': # TDOA pre-training
         params['ngcc_out_channels'] = 16
         params['saved_chunks'] = True
         params['use_mel'] = False
-        params['nb_epochs'] = 250
+        params['nb_epochs'] = 125
+        params['eval_freq'] = 5
+
         params['predict_tdoa'] = False
         params['lambda'] = 0.0 # set to 1.0 to only train tdoa, and 0.0 to only train SELD
         params['max_tau'] = 6
         params['tracks'] = 3
+        params['fixed_tdoa'] = True
+        params['batch_size'] = 64
+        params['augment'] = False
+        #params['label_sequence_length'] = 50 
+        #params['lr'] = 1e-4
 
     elif argv == '7':
         print("MIC + SALSA + multi ACCDOA\n")
