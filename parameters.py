@@ -75,6 +75,7 @@ def get_params(argv='1'):
         weight_decay=0.0,
         specaugment=False,
         augment=False,
+        predict_tdoa=False,
 
         # METRIC
         average='macro',                 # Supports 'micro': sample-wise average and 'macro': class-wise average,
@@ -83,7 +84,25 @@ def get_params(argv='1'):
         lad_doa_thresh=20,               # DOA error threshold for computing the detection metrics
         lad_dist_thresh=float('inf'),    # Absolute distance error threshold for computing the detection metrics
         lad_reldist_thresh=float('1'),  # Relative distance error threshold for computing the detection metrics
+
+        #CST-former params
+        encoder = 'conv',           # ['conv', 'ResNet', 'SENet']
+        LinearLayer = False,        # Linear Layer right after attention layers (usually not used/employed in baseline model)
+        FreqAtten = False,          # Use of Divided Spectro-Temporal Attention (DST Attention)
+        ChAtten_DCA = False,        # Use of Divided Channel-S-T Attention (CST Attention)
+        ChAtten_ULE = False,        # Use of Divided C-S-T attention with Unfold (Unfolded CST attention)
+        CMT_block = False,          # Use of LPU & IRFNN
+        CMT_split = False,          # Apply LPU & IRFNN on S, T attention layers independently
+
+        
     )
+
+    params['feature_label_resolution'] = int(params['label_hop_len_s'] // params['hop_len_s'])
+    params['feature_sequence_length'] = params['label_sequence_length'] * params['feature_label_resolution']
+    params['t_pool_size'] = [params['feature_label_resolution'], 1, 1]  # CNN time pooling
+    params['patience'] = int(params['nb_epochs'])  # Stop training if patience is reached
+    params['model_dir'] = params['model_dir'] + '_' + params['modality']
+    params['dcase_output_dir'] = params['dcase_output_dir'] + '_' + params['modality']
 
     # ########### User defined parameters ##############
     if argv == '1':
@@ -148,7 +167,7 @@ def get_params(argv='1'):
         params['model'] = 'ngccmodel'
         params['ngcc_channels'] = 32
         params['ngcc_out_channels'] = 16 
-        params['saved_chunks'] = True
+        params['saved_chunks'] = False
         params['use_mel'] = False
         params['nb_epochs'] = 1
         params['predict_tdoa'] = True
@@ -173,18 +192,43 @@ def get_params(argv='1'):
         params['ngcc_out_channels'] = 16
         params['saved_chunks'] = True
         params['use_mel'] = False
-        params['nb_epochs'] = 125
-        params['eval_freq'] = 5
+        params['nb_epochs'] = 250
 
         params['predict_tdoa'] = False
         params['lambda'] = 0.0 # set to 1.0 to only train tdoa, and 0.0 to only train SELD
         params['max_tau'] = 6
         params['tracks'] = 3
         params['fixed_tdoa'] = True
-        params['batch_size'] = 64
         params['augment'] = False
-        #params['label_sequence_length'] = 50 
-        #params['lr'] = 1e-4
+
+
+    elif argv == '32':
+        print("[CST-former: Divided Channel Attention] FOA + Multi-ACCDOA + CST_DCA + CMT (S dim : 16)\n")
+        params['model'] = 'cstformer'
+        params['multi_accdoa'] = True
+        params['t_pooling_loc'] = 'front',
+
+        params['FreqAtten'] = True
+        params['ChAtten_DCA'] = True
+        params['CMT_block'] = True
+
+        params["f_pool_size"] = [2, 2, 1]
+        params['t_pool_size'] = [params['feature_label_resolution'], 1, 1]
+        params['batch_size'] = 32
+        params['batch_size'] = 2
+
+    elif argv == '33':
+        print("[CST-former: Unfolded Local Embedding] FOA + Multi-ACCDOA + CST Unfold + CMT (S dim : 16)\n")
+        params['model'] = 'cstformer'
+        params['multi_accdoa'] = True
+        params['t_pooling_loc'] = 'front',
+
+        params['FreqAtten'] = True
+        params['ChAtten_ULE'] = True
+        params['CMT_block'] = True
+
+        params["f_pool_size"] = [1,2,2] 
+        params['t_pool_size'] = [1,1, params['feature_label_resolution']]
 
     elif argv == '7':
         print("MIC + SALSA + multi ACCDOA\n")
@@ -201,12 +245,6 @@ def get_params(argv='1'):
         print('ERROR: unknown argument {}'.format(argv))
         exit()
 
-    feature_label_resolution = int(params['label_hop_len_s'] // params['hop_len_s'])
-    params['feature_sequence_length'] = params['label_sequence_length'] * feature_label_resolution
-    params['t_pool_size'] = [feature_label_resolution, 1, 1]  # CNN time pooling
-    params['patience'] = int(params['nb_epochs'])  # Stop training if patience is reached
-    params['model_dir'] = params['model_dir'] + '_' + params['modality']
-    params['dcase_output_dir'] = params['dcase_output_dir'] + '_' + params['modality']
 
     if '2020' in params['dataset_dir']:
         params['unique_classes'] = 14
