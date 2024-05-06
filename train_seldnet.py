@@ -23,6 +23,7 @@ import seldnet_model
 from model import NGCCModel
 from speechbrain.nnet.losses import PitWrapper 
 from torch_audiomentations import AddColoredNoise
+from cst_former.CST_former_model import CST_former
 
 def deg2rad(deg):
     return deg * 2 * np.pi / 360
@@ -543,6 +544,16 @@ def main(argv):
             else:
                 data_in, data_out = data_gen_train.get_data_sizes()
                 model = NGCCModel(data_in, data_out, params).to(device)
+
+        elif params['model'] == 'cstformer':
+            if params['modality'] == 'audio_visual':
+                data_in, vid_data_in, data_out = data_gen_train.get_data_sizes()
+                model = CST_former(data_in, data_out, params, vid_data_in).to(device)
+            else:
+                data_in, data_out = data_gen_train.get_data_sizes()
+                model = CST_former(data_in, data_out, params).to(device)
+
+
 
                 
         else:
