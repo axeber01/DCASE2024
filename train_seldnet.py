@@ -554,6 +554,11 @@ def main(argv):
             state_dict = torch.load(params['pretrained_model_weights'], map_location='cpu')
             if params['modality'] == 'audio_visual':
                 state_dict = {k: v for k, v in state_dict.items() if 'fnn' not in k}
+            if params['model'] == 'ngccmodel':
+                # skip layers with non-matching shapes when loading weights
+                model_dict = model.state_dict()
+                state_dict = {k: v for k, v in state_dict.items() if
+                       (k in model_dict) and (model_dict[k].shape == state_dict[k].shape)}
             model.load_state_dict(state_dict, strict=False)
 
 
