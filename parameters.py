@@ -8,7 +8,7 @@ def get_params(argv='1'):
     print("SET: {}".format(argv))
     # ########### default parameters ##############
     params = dict(
-        quick_test=True,  # To do quick test. Trains/test on small subset of dataset, and # of epochs
+        quick_test=False,  # To do quick test. Trains/test on small subset of dataset, and # of epochs
 
         finetune_mode=False,  # Finetune on existing model, requires the pretrained model path set - pretrained_model_weights
         pretrained_model_weights='3_1_dev_split0_multiaccdoa_foa_model.h5',
@@ -52,7 +52,7 @@ def get_params(argv='1'):
 
         # DNN MODEL PARAMETERS
         label_sequence_length=50,    # Feature sequence length
-        batch_size=256,              # Batch size
+        batch_size=64,              # Batch size
         eval_batch_size=64,
         dropout_rate=0.05,           # Dropout rate, constant for all layers
         nb_cnn2d_filt=64,           # Number of CNN nodes, constant for each layer
@@ -68,8 +68,8 @@ def get_params(argv='1'):
         nb_fnn_layers=1,
         fnn_size=128,  # FNN contents, length of list = number of layers, list value = number of nodes
 
-        nb_epochs=250,  # Train for maximum epochs
-        eval_freq=25, # evaluate every x epochs
+        nb_epochs=150,  # Train for maximum epochs
+        eval_freq=10, # evaluate every x epochs
         lr=1e-3,
         final_lr=1e-5, # final learning rate in cosine scheduler
         weight_decay=0.0,
@@ -142,7 +142,10 @@ def get_params(argv='1'):
         params['use_salsalite'] = False
         params['multi_accdoa'] = True
         params['n_mics'] = 4
-        params['batch_size'] = 128
+        #params['batch_size'] = 1024
+        #params['eval_batch_size'] = 1024
+        params['predict_tdoa'] = False
+        params['augment'] = False
 
     elif argv == '8':
         print("RAW AUDIO CHUNKS + multi ACCDOA\n")
@@ -179,7 +182,7 @@ def get_params(argv='1'):
 
     elif argv == '10': # fine-tuning from tdoa-pretrained model
         print("RAW AUDIO CHUNKS w/ NGCC model + multi ACCDOA, pre-trained TDOA features\n")
-        params['finetune_mode'] = True
+        params['finetune_mode'] = True#True
         params['raw_chunks'] = True
         params['pretrained_model_weights'] = 'models_audio/9_ngccphat-6delays-tdoa_dev_split0_multiaccdoa_mic_gcc_model_final.h5'
         params['quick_test'] = False
@@ -191,8 +194,9 @@ def get_params(argv='1'):
         params['ngcc_channels'] = 32
         params['ngcc_out_channels'] = 16
         params['saved_chunks'] = True
-        params['use_mel'] = False
-        params['nb_epochs'] = 250
+        params['use_mel'] = True
+        params['nb_epochs'] = 1000
+        params['eval_freq'] = 25
 
         params['predict_tdoa'] = False
         params['lambda'] = 0.0 # set to 1.0 to only train tdoa, and 0.0 to only train SELD
@@ -205,8 +209,9 @@ def get_params(argv='1'):
     elif argv == '32':
         print("[CST-former: Divided Channel Attention] FOA + Multi-ACCDOA + CST_DCA + CMT (S dim : 16)\n")
         params['model'] = 'cstformer'
+        params['quick_test'] = False
         params['multi_accdoa'] = True
-        params['t_pooling_loc'] = 'front',
+        params['t_pooling_loc'] = 'front'
 
         params['FreqAtten'] = True
         params['ChAtten_DCA'] = True
@@ -214,14 +219,14 @@ def get_params(argv='1'):
 
         params["f_pool_size"] = [2, 2, 1]
         params['t_pool_size'] = [params['feature_label_resolution'], 1, 1]
-        params['batch_size'] = 32
-        params['batch_size'] = 2
+        params['batch_size'] = 64
 
     elif argv == '33':
         print("[CST-former: Unfolded Local Embedding] FOA + Multi-ACCDOA + CST Unfold + CMT (S dim : 16)\n")
         params['model'] = 'cstformer'
+        params['quick_test'] = False
         params['multi_accdoa'] = True
-        params['t_pooling_loc'] = 'front',
+        params['t_pooling_loc'] = 'front'
 
         params['FreqAtten'] = True
         params['ChAtten_ULE'] = True
@@ -229,6 +234,7 @@ def get_params(argv='1'):
 
         params["f_pool_size"] = [1,2,2] 
         params['t_pool_size'] = [1,1, params['feature_label_resolution']]
+        params['batch_size'] = 64
 
     elif argv == '7':
         print("MIC + SALSA + multi ACCDOA\n")

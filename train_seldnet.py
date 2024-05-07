@@ -24,6 +24,7 @@ from model import NGCCModel
 from speechbrain.nnet.losses import PitWrapper 
 from torch_audiomentations import AddColoredNoise
 from cst_former.CST_former_model import CST_former
+from torchsummary import summary
 
 def deg2rad(deg):
     return deg * 2 * np.pi / 360
@@ -578,7 +579,7 @@ def main(argv):
         log_string('MODEL:\n\tdropout_rate: {}\n\tCNN: nb_cnn_filt: {}, f_pool_size{}, t_pool_size{}\n, rnn_size: {}\n, nb_attention_blocks: {}\n, fnn_size: {}\n'.format(
             params['dropout_rate'], params['nb_cnn2d_filt'], params['f_pool_size'], params['t_pool_size'], params['rnn_size'], params['nb_self_attn_layers'],
             params['fnn_size']))
-        print(model)
+        summary(model, data_in[1:])
 
         # Dump results in DCASE output format for calculating final scores
         dcase_output_val_folder = os.path.join(params['dcase_output_dir'], '{}_{}_val'.format(unique_name, strftime("%Y%m%d%H%M%S", gmtime())))
