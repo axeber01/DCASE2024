@@ -12,14 +12,15 @@ def get_params(argv='1'):
 
         finetune_mode=True,  # Finetune on existing model, requires the pretrained model path set - pretrained_model_weights
         pretrained_model_weights='3_1_dev_split0_multiaccdoa_foa_model.h5',
+        # pretrained_model_weights='6_1_dev_split0_multiaccdoa_mic_gcc_model.h5',
 
         # INPUT PATH
-        # dataset_dir='DCASE2020_SELD_dataset/',  # Base folder containing the foa/mic and metadata folders
-        dataset_dir='../DCASE2024_SELD_dataset/',
+        dataset_dir='DCASE2024_SELD_dataset/',  # Base folder containing the foa/mic and metadata folders
+        # dataset_dir='../DCASE2024_SELD_dataset/',
 
         # OUTPUT PATHS
-        # feat_label_dir='DCASE2020_SELD_dataset/feat_label_hnet/',  # Directory to dump extracted features and labels
-        feat_label_dir='../DCASE2024_SELD_dataset/seld_feat_label/',
+        feat_label_dir='DCASE2024_SELD_dataset/feat_label_hnet/',  # Directory to dump extracted features and labels
+        # feat_label_dir='../DCASE2024_SELD_dataset/seld_feat_label/',
 
         model_dir='models',  # Dumps the trained models and training curves in this folder
         dcase_output_dir='results',  # recording-wise results are dumped in this path.
@@ -41,13 +42,15 @@ def get_params(argv='1'):
         fmax_spectra_salsalite=9000,
 
         # MODEL TYPE
-        modality='audio',  # 'audio' or 'audio_visual'
+        modality='audio_visual',  # 'audio' or 'audio_visual'
         multi_accdoa=False,  # False - Single-ACCDOA or True - Multi-ACCDOA
         thresh_unify=15,    # Required for Multi-ACCDOA only. Threshold of unification for inference in degrees.
 
+        train_on_video=True,  # My added parameter!
+
         # DNN MODEL PARAMETERS
-        label_sequence_length=50,    # Feature sequence length
-        batch_size=128,              # Batch size
+        label_sequence_length=5, # 25, #5,    # Feature sequence length
+        batch_size=8, #12, #4, 128              # Batch size
         dropout_rate=0.05,           # Dropout rate, constant for all layers
         nb_cnn2d_filt=64,           # Number of CNN nodes, constant for each layer
         f_pool_size=[4, 4, 2],      # CNN frequency pooling, length of list = number of CNN layers, list value = pooling per layer
@@ -63,7 +66,7 @@ def get_params(argv='1'):
         fnn_size=128,  # FNN contents, length of list = number of layers, list value = number of nodes
 
         nb_epochs=250,  # Train for maximum epochs
-        lr=1e-3,
+        lr=1e-3, #1e-3,
 
         # METRIC
         average='macro',                 # Supports 'micro': sample-wise average and 'macro': class-wise average,
