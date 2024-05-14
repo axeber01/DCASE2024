@@ -77,11 +77,11 @@ def main(argv):
             train_loss += loss.item()
             nb_train_batches += 1
 
-            if nb_train_batches % 500 == 0:
-                print("Iteration ", nb_train_batches, "Loss: ", train_loss/nb_train_batches)
+            #if nb_train_batches % 500 == 0:
+            #    print("Iteration ", nb_train_batches, "Loss: ", train_loss/nb_train_batches)
 
         train_loss /= nb_train_batches
-        print("Training loss: ", train_loss)
+        print("Epoch: ", epoch_cnt, "Training loss: ", train_loss)
 
     torch.save(model.state_dict(), 'final_model.pth')
 
