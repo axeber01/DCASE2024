@@ -11,7 +11,8 @@ class CST_attention(torch.nn.Module):
         self.linear_layer = params['LinearLayer']
         self.dropout_rate = params['dropout_rate']
         self.temp_embed_dim = temp_embed_dim
-        self.nb_ch = 7
+        print(temp_embed_dim)
+        #self.nb_ch = 7
 
         # Channel attention w. Divided Channel Attention (DCA) ---------------------------------------------#
         if self.ChAtten_dca:
@@ -27,7 +28,8 @@ class CST_attention(torch.nn.Module):
             self.patch_size_t = 25 if params['t_pooling_loc']=='end' else 10
             self.patch_size_f = 4
             self.patch_size = (self.patch_size_t, self.patch_size_f)
-            self.freq_dim = int(64 / torch.prod(torch.Tensor(params['f_pool_size'])))
+            f_dim = 382 if params['use_salsalite'] else 64
+            self.freq_dim = int(f_dim / torch.prod(torch.Tensor(params['f_pool_size'])))
             self.temp_dim = 250 if params['t_pooling_loc']=='end' else 50
             self.unfold = nn.Unfold(kernel_size=self.patch_size, stride=self.patch_size)
             self.fold = nn.Fold(output_size=(self.temp_dim, self.freq_dim), kernel_size=self.patch_size, stride=self.patch_size)
@@ -192,7 +194,7 @@ class CST_encoder(torch.nn.Module):
         self.freq_atten = params['FreqAtten']
         self.ch_atten_dca = params['ChAtten_DCA']
         self.ch_atten_ule = params['ChAtten_ULE']
-        self.nb_ch = 7
+        self.nb_ch = params['nb_channels']
         n_layers = params['nb_self_attn_layers']
 
         self.block_list = nn.ModuleList([CST_attention(

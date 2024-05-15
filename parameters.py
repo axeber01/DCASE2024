@@ -68,14 +68,15 @@ def get_params(argv='1'):
         nb_fnn_layers=1,
         fnn_size=128,  # FNN contents, length of list = number of layers, list value = number of nodes
 
-        nb_epochs=150,  # Train for maximum epochs
-        eval_freq=10, # evaluate every x epochs
+        nb_epochs=300,  # Train for maximum epochs
+        eval_freq=25, # evaluate every x epochs
         lr=1e-3,
         final_lr=1e-5, # final learning rate in cosine scheduler
         weight_decay=0.0,
         specaugment=False,
         augment=False,
         predict_tdoa=False,
+        warmup=5, #number of warmup epochs
 
         # METRIC
         average='macro',                 # Supports 'micro': sample-wise average and 'macro': class-wise average,
@@ -93,6 +94,7 @@ def get_params(argv='1'):
         ChAtten_ULE = False,        # Use of Divided C-S-T attention with Unfold (Unfolded CST attention)
         CMT_block = False,          # Use of LPU & IRFNN
         CMT_split = False,          # Apply LPU & IRFNN on S, T attention layers independently
+        use_ngcc = False,
 
         
     )
@@ -160,6 +162,7 @@ def get_params(argv='1'):
     elif argv == '9': # TDOA pre-training
         print("RAW AUDIO CHUNKS w/ NGCC model + multi ACCDOA, TDOA-pretraining\n")
         params['label_sequence_length'] = 1 # use only one time frame for tdoa training
+        params['feature_sequence_length'] = params['label_sequence_length'] * params['feature_label_resolution']
         params['raw_chunks'] = True
         params['pretrained_model_weights'] = 'blah.h5'
         params['quick_test'] = False
@@ -170,7 +173,7 @@ def get_params(argv='1'):
         params['model'] = 'ngccmodel'
         params['ngcc_channels'] = 32
         params['ngcc_out_channels'] = 16 
-        params['saved_chunks'] = False
+        params['saved_chunks'] = True
         params['use_mel'] = False
         params['nb_epochs'] = 1
         params['predict_tdoa'] = True
@@ -179,6 +182,9 @@ def get_params(argv='1'):
         params['tracks'] = 3
         params['fixed_tdoa'] = False
         params['augment'] = False
+        params['batch_size'] = 32
+        params['lr'] = 1e-4
+        params['warmup'] = 0
 
     elif argv == '10': # fine-tuning from tdoa-pretrained model
         print("RAW AUDIO CHUNKS w/ NGCC model + multi ACCDOA, pre-trained TDOA features\n")
@@ -195,8 +201,8 @@ def get_params(argv='1'):
         params['ngcc_out_channels'] = 16
         params['saved_chunks'] = True
         params['use_mel'] = True
-        params['nb_epochs'] = 1000
-        params['eval_freq'] = 25
+        #params['nb_epochs'] = 1000
+        #params['eval_freq'] = 25
 
         params['predict_tdoa'] = False
         params['lambda'] = 0.0 # set to 1.0 to only train tdoa, and 0.0 to only train SELD
@@ -220,9 +226,10 @@ def get_params(argv='1'):
         params["f_pool_size"] = [2, 2, 1]
         params['t_pool_size'] = [params['feature_label_resolution'], 1, 1]
         params['batch_size'] = 64
+        params['fnn_size'] = 256
 
     elif argv == '33':
-        print("[CST-former: Unfolded Local Embedding] FOA + Multi-ACCDOA + CST Unfold + CMT (S dim : 16)\n")
+        print("[CST-former: Unfolded Local Embedding] GCC + Multi-ACCDOA + CST Unfold + CMT (S dim : 16)\n")
         params['model'] = 'cstformer'
         params['quick_test'] = False
         params['multi_accdoa'] = True
@@ -235,6 +242,64 @@ def get_params(argv='1'):
         params["f_pool_size"] = [1,2,2] 
         params['t_pool_size'] = [1,1, params['feature_label_resolution']]
         params['batch_size'] = 64
+        params['nb_fnn_layers'] = 1
+        params['fnn_size'] = 256
+
+    elif argv == '34':
+        print("[CST-former: Unfolded Local Embedding] SALSA-LITE + Multi-ACCDOA + CST Unfold + CMT (S dim : 16)\n")
+        params['model'] = 'cstformer'
+        params['use_salsalite'] = True
+        params['quick_test'] = False
+        params['multi_accdoa'] = True
+        params['t_pooling_loc'] = 'front'
+
+        params['FreqAtten'] = True
+        params['ChAtten_ULE'] = True
+        params['CMT_block'] = True
+
+        params["f_pool_size"] = [1,4,6]
+        params['t_pool_size'] = [1,1, params['feature_label_resolution']]
+        params['batch_size'] = 64
+        params['nb_fnn_layers'] = 1
+        params['fnn_size'] = 256
+
+    elif argv == '333': #CST former with NGCC-PHAT
+        print("[CST-former: Unfolded Local Embedding] FOA + Multi-ACCDOA + CST Unfold + CMT (S dim : 16)\n")
+        params['model'] = 'cstformer'
+        params['use_ngcc'] = True
+        params['quick_test'] = False
+        params['multi_accdoa'] = True
+        params['t_pooling_loc'] = 'front'
+
+        params['FreqAtten'] = True
+        params['ChAtten_ULE'] = True
+        params['CMT_block'] = True
+
+        params["f_pool_size"] = [1,2,2]
+        params['t_pool_size'] = [1,1, params['feature_label_resolution']]
+        params['batch_size'] = 64
+        params['nb_fnn_layers'] = 1
+        params['fnn_size'] = 256
+
+        params['finetune_mode'] = True#True
+        params['raw_chunks'] = True
+        params['pretrained_model_weights'] = 'models_audio/9_ngccphat-6delays-tdoa_dev_split0_multiaccdoa_mic_gcc_model_final.h5'
+        params['dataset'] = 'mic'
+        params['n_mics'] = 4
+        params['ngcc_channels'] = 32
+        params['ngcc_out_channels'] = 16
+        params['saved_chunks'] = True
+        params['use_mel'] = True
+        #params['nb_epochs'] = 1000
+        #params['eval_freq'] = 25
+
+        params['predict_tdoa'] = False
+        params['lambda'] = 0.0 # set to 1.0 to only train tdoa, and 0.0 to only train SELD
+        params['max_tau'] = 6
+        params['tracks'] = 3
+        params['fixed_tdoa'] = True
+        params['augment'] = False
+
 
     elif argv == '7':
         print("MIC + SALSA + multi ACCDOA\n")
@@ -250,6 +315,19 @@ def get_params(argv='1'):
     else:
         print('ERROR: unknown argument {}'.format(argv))
         exit()
+
+    #params['feature_label_resolution'] = int(params['label_hop_len_s'] // params['hop_len_s'])
+    #params['feature_sequence_length'] = params['label_sequence_length'] * params['feature_label_resolution']
+    if params['dataset'] == 'mic':
+        if params['use_ngcc']:
+            if params['use_mel']:
+                params['nb_channels'] = int(params['ngcc_out_channels'] * params['n_mics'] * (params['n_mics'] - 1) / 2 +  params['n_mics'])
+            else:
+                params['nb_channels'] = int(params['ngcc_out_channels'] * params['n_mics'] * ( 1 + (params['n_mics'] - 1) / 2))
+        elif params['use_salsalite']:
+            params['nb_channels'] = 7
+    else:
+        params['nb_channels'] = 7
 
 
     if '2020' in params['dataset_dir']:

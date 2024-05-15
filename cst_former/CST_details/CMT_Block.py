@@ -15,6 +15,16 @@ class CMT_Layers(torch.nn.Module):
         self.ffn_ratio = ffn_ratio
         self.dim = params['nb_cnn2d_filt']
 
+        self.channels = params['nb_channels']
+
+        #if params['use_ngcc']:
+        #    if params['use_mel']:
+        #        self.channels = int(params['ngcc_out_channels'] * params['n_mics'] * (params['n_mics'] - 1) / 2 +  params['n_mics'])
+        #    else:
+        #        self.channels = int(params['ngcc_out_channels'] * params['n_mics'] * ( 1 + (params['n_mics'] - 1) / 2))
+        #else:
+        #    self.channels = channels
+
         self.norm1 = nn.LayerNorm(self.dim)
         self.LPU = LocalPerceptionUint(self.dim)
         self.IRFFN = InvertedResidualFeedForward(self.dim, self.ffn_ratio)
@@ -53,7 +63,7 @@ class CMT_Layers(torch.nn.Module):
                 B, C, T, F = x.size()
                 x = rearrange(x, 'b c t f -> b t (f c)')
                 if not self.ch_attn_dca: # channel attention with unfolding
-                    x = self.cst_attention(x,7,C, T, F)
+                    x = self.cst_attention(x, self.channels, C, T, F)
                 else:   # dst attention
                     x = self.cst_attention(x,C,T,F)
 
@@ -66,7 +76,7 @@ class CMT_Layers(torch.nn.Module):
 
             if self.ch_attn_dca: # ch_attn (DCA)
                 B, C, T, F = x.size()
-                M = 7
+                M = self.channels
 
                 lpu = self.LPU(x)
                 x = x + lpu
@@ -124,7 +134,15 @@ class CMT_block(torch.nn.Module):
         self.num_layers = params['nb_self_attn_layers']
         self.ch_atten_dca = params['ChAtten_DCA']
         self.ffn_ratio = ffn_ratio
-        self.nb_ch = 7
+        self.nb_ch = params['nb_channels']
+        
+        #if params['use_ngcc']:
+        #    if params['use_mel']:
+        #        self.nb_ch = int(params['ngcc_out_channels'] * params['n_mics'] * (params['n_mics'] - 1) / 2 +  params['n_mics'])
+        #    else:
+        #        self.nb_ch = int(params['ngcc_out_channels'] * params['n_mics'] * ( 1 + (params['n_mics'] - 1) / 2))
+        #else:
+        #    self.nb_ch = channels
 
         self.block_list = nn.ModuleList([CMT_Layers(
             params=params,

@@ -10,9 +10,16 @@ class conv_encoder(torch.nn.Module):
         assert(len(params['f_pool_size']))
 
         self.conv_block_list = nn.ModuleList()
-
+        
         if self.params['ChAtten_DCA']: in_channels = 1
-        else: in_channels = in_feat_shape[1]
+        else: in_channels = params['nb_channels']
+            #if params['use_ngcc']:
+            #    if params['use_mel']:
+            #        in_channels = int(params['ngcc_out_channels'] * params['n_mics'] * (params['n_mics'] - 1) / 2 +  params['n_mics'])
+            #    else:
+            #        in_channels = int(params['ngcc_out_channels'] * params['n_mics'] * ( 1 + (params['n_mics'] - 1) / 2))
+            #else:
+            #    in_channels = in_feat_shape[1]
 
         for conv_cnt in range(len(params['f_pool_size'])):
             self.conv_block_list.append(nn.Sequential(

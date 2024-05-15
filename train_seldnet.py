@@ -25,6 +25,7 @@ from speechbrain.nnet.losses import PitWrapper
 from torch_audiomentations import AddColoredNoise
 from cst_former.CST_former_model import CST_former
 from torchsummary import summary
+from warmup_scheduler import GradualWarmupScheduler
 
 def deg2rad(deg):
     return deg * 2 * np.pi / 360
@@ -199,7 +200,7 @@ def test_epoch(data_generator, model, criterion, dcase_output_folder, params, de
                 #print(target.shape)
                 data, target = torch.tensor(data).to(device).float(), torch.tensor(target).to(device).float()
                 bs = params['batch_size']
-                if data.shape[0] > bs:
+                if data.shape[0] > bs and params['raw_chunks']:
                     max_cnt = data.shape[0] // bs
                     output = []
                     output_tdoa = []
@@ -483,7 +484,7 @@ def main(argv):
         elif '2024' in params['dataset_dir']:
             test_splits = [[4]]
             val_splits = [[4]]
-            train_splits = [[3]]
+            train_splits = [[1, 2, 3]] # split 1 and 2 are simulated data, 3 and 4 are real recordings
 
         else:
             log_string('ERROR: Unknown dataset splits')
@@ -579,7 +580,8 @@ def main(argv):
         log_string('MODEL:\n\tdropout_rate: {}\n\tCNN: nb_cnn_filt: {}, f_pool_size{}, t_pool_size{}\n, rnn_size: {}\n, nb_attention_blocks: {}\n, fnn_size: {}\n'.format(
             params['dropout_rate'], params['nb_cnn2d_filt'], params['f_pool_size'], params['t_pool_size'], params['rnn_size'], params['nb_self_attn_layers'],
             params['fnn_size']))
-        summary(model, data_in[1:])
+        if not params['predict_tdoa']:
+            summary(model, data_in[1:])
 
         # Dump results in DCASE output format for calculating final scores
         dcase_output_val_folder = os.path.join(params['dcase_output_dir'], '{}_{}_val'.format(unique_name, strftime("%Y%m%d%H%M%S", gmtime())))
@@ -617,6 +619,10 @@ def main(argv):
 
         scheduler = optim.lr_scheduler.CosineAnnealingLR(
                         optimizer, T_max=nb_epoch, eta_min=params['final_lr'])
+        if not params['predict_tdoa']:
+            scheduler = GradualWarmupScheduler(optimizer, multiplier=1, total_epoch=params['warmup'], after_scheduler=scheduler)
+        optimizer.zero_grad()
+        optimizer.step()
 
         if params['multi_accdoa'] is True:
             criterion = seldnet_model.MSELoss_ADPIT()
@@ -638,6 +644,9 @@ def main(argv):
             train_loss = train_epoch(data_gen_train, optimizer, model, criterion, params, device, criterion_tdoa)
             scheduler.step()
             train_time = time.time() - start_time
+            if params['predict_tdoa']:
+                log_string("saving TDOA model")
+                torch.save(model.state_dict(), model_name_final)
             # ---------------------------------------------------------------------
             # VALIDATION
             # ---------------------------------------------------------------------
@@ -650,9 +659,7 @@ def main(argv):
                 # Calculate the DCASE 2021 metrics - Location-aware detection and Class-aware localization scores
 
                 val_ER, val_F, val_LE, val_dist_err, val_rel_dist_err, val_LR, val_seld_scr, classwise_val_scr = score_obj.get_SELD_Results(dcase_output_val_folder)
-                val_ER, val_F, val_LE, val_dist_err, val_rel_dist_err, val_LR, val_seld_scr, classwise_val_scr = score_obj.get_SELD_Results(dcase_output_val_folder)
 
-                val_time = time.time() - start_time
                 val_time = time.time() - start_time
 
                 # Save model if F-score is good
@@ -687,8 +694,10 @@ def main(argv):
         # ---------------------------------------------------------------------
         # Evaluate on unseen test data
         # ---------------------------------------------------------------------
-        log_string('Load best model weights')
-        model.load_state_dict(torch.load(model_name, map_location='cpu'))
+        # don't load best model, this is cherry picking
+        log_string('Not loading best model weights, using final model weights instead')
+        #log_string('Load best model weights')
+        #model.load_state_dict(torch.load(model_name, map_location='cpu'))
 
         log_string('Loading unseen test dataset:')
         data_gen_test = cls_data_generator.DataGenerator(
