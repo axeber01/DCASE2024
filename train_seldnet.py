@@ -484,7 +484,7 @@ def main(argv):
         elif '2024' in params['dataset_dir']:
             test_splits = [[4]]
             val_splits = [[4]]
-            train_splits = [[1, 2, 3]] # split 1 and 2 are simulated data, 3 and 4 are real recordings
+            train_splits = [[1, 2, 3, 9]] # split 1 and 2 are simulated data, 3 and 4 are real recordings, 9 is extra simulated with rare classes
 
         else:
             log_string('ERROR: Unknown dataset splits')
