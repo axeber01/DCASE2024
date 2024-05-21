@@ -497,7 +497,9 @@ class FeatureClass:
         vid_frames = self._read_vid_frames(_mp4_path)
         pretrained_vid_model = VideoFeatures()
         vid_feat = pretrained_vid_model(vid_frames)
+        print("vid_feat: ", vid_feat.shape)
         vid_feat = np.array(vid_feat)
+        # vid_feat = np.stack(vid_frames)
 
         if vid_feat is not None:
             print('{}: {}, {}'.format(_file_cnt, os.path.basename(_mp4_path), vid_feat.shape))

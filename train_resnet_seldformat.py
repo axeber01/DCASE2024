@@ -18,10 +18,14 @@ def main(argv):
 
     model = resnet
     model = torch.nn.Sequential(*(list(model.children())[:-2]))
-    conv_layer = nn.Conv2d(2048, 156, kernel_size=1)
+    # Define the new convolutional layers
+    conv_layer_1 = nn.Conv2d(2048, 1024, kernel_size=1)
+    conv_layer_2 = nn.Conv2d(1024, 128, kernel_size=1)
+    conv_layer_3 = nn.Conv2d(128, 1, kernel_size=1)
+    conv_layer_up = nn.Conv2d(1, 156, kernel_size=1)
 
-    # Concatenate the ResNet model with the convolutional layer
-    model = torch.nn.Sequential(model, conv_layer)
+    # Concatenate the ResNet model with the new convolutional layers
+    model = torch.nn.Sequential(model, conv_layer_1, conv_layer_2, conv_layer_3, conv_layer_up)
 
     # Ensure parameters require gradients
     for param in model.parameters():
@@ -65,11 +69,14 @@ def main(argv):
             optimizer.zero_grad()
 
             outputs = model(x)
+            # print("Outputs: ", outputs.shape)
             # Perform global average pooling
             outputs = F.adaptive_avg_pool2d(outputs, (1, 1))
+            # print("Outputs 2: ", outputs.shape)
             outputs = outputs.view(outputs.size(0), -1)
+            # print("Outputs 3: ", outputs.shape)
             outputs = outputs.view(params['batch_size'], params['label_sequence_length'], -1)
-            # print("Outputs: ", outputs.shape)
+            # print("Outputs 4: ", outputs.shape)
             loss = criterion(outputs, target)
 
             loss.backward()
@@ -83,7 +90,7 @@ def main(argv):
         train_loss /= nb_train_batches
         print("Epoch: ", epoch_cnt, "Training loss: ", train_loss)
 
-    torch.save(model.state_dict(), 'final_model.pth')
+    torch.save(model.state_dict(), 'final_model_down_to_1.pth')
 
 
 if __name__ == "__main__":
