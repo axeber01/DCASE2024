@@ -1,4 +1,5 @@
 #!/bin/bash
+#SBATCH --account=Berzelius-2023-349
 #SBATCH --gpus 1
 #SBATCH -t 2-00:00:00
 
