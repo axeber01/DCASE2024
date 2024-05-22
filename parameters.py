@@ -245,6 +245,7 @@ def get_params(argv='1'):
         params['batch_size'] = 64
         params['nb_fnn_layers'] = 1
         params['fnn_size'] = 256
+        params['nb_channels'] = 10
 
     elif argv == '34':
         print("[CST-former: Unfolded Local Embedding] SALSA-LITE + Multi-ACCDOA + CST Unfold + CMT (S dim : 16)\n")
