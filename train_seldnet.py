@@ -625,7 +625,7 @@ def main(argv):
         optimizer.step()
 
         if params['multi_accdoa'] is True:
-            criterion = seldnet_model.MSELoss_ADPIT()
+            criterion = seldnet_model.MSELoss_ADPIT(relative_dist=params['relative_dist'])
         else:
             criterion = nn.MSELoss()
 

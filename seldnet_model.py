@@ -9,12 +9,22 @@ from IPython import embed
 
 
 class MSELoss_ADPIT(object):
-    def __init__(self):
+    def __init__(self, relative_dist=False):
         super().__init__()
         self._each_loss = nn.MSELoss(reduction='none')
+        self.relative_dist = relative_dist
+        self.eps = 0.001
 
     def _each_calc(self, output, target):
-        return self._each_loss(output, target).mean(dim=(2))  # class-wise frame-level
+        loss = self._each_loss(output, target)
+        if self.relative_dist:
+            # distance indices are 3, 7, 11
+            # only scale loss for distances > 0
+            loss[:, :, 3] = torch.where(target[:, :, 3] > 0., loss[:, :, 3] / (target[:, :, 3] + self.eps), loss[:, :, 3])
+            loss[:, :, 7] = torch.where(target[:, :, 7] > 0., loss[:, :, 7] / (target[:, :, 7] + self.eps), loss[:, :, 7])
+            loss[:, :, 11] = torch.where(target[:, :, 11] > 0., loss[:, :, 11] / (target[:, :, 11] + self.eps), loss[:, :, 11])
+
+        return loss.mean(dim=(2))  # class-wise frame-level
 
     def __call__(self, output, target):
         """
@@ -25,6 +35,7 @@ class MSELoss_ADPIT(object):
         Return:
             loss: scalar
         """
+
         target_A0 = target[:, :, 0, 0:1, :] * target[:, :, 0, 1:, :]  # A0, no ov from the same class, [batch_size, frames, num_axis(act)=1, num_class=12] * [batch_size, frames, num_axis(XYZD)=4, num_class=12]
         target_B0 = target[:, :, 1, 0:1, :] * target[:, :, 1, 1:, :]  # B0, ov with 2 sources from the same class
         target_B1 = target[:, :, 2, 0:1, :] * target[:, :, 2, 1:, :]  # B1
@@ -47,6 +58,7 @@ class MSELoss_ADPIT(object):
         target_C2C1C0 = torch.cat((target_C2, target_C1, target_C0), 2)
 
         output = output.reshape(output.shape[0], output.shape[1], target_A0A0A0.shape[2], target_A0A0A0.shape[3])  # output is set the same shape of target, [batch_size, frames, num_track*num_axis=3*4, num_class=12]
+        
         pad4A = target_B0B0B1 + target_C0C1C2
         pad4B = target_A0A0A0 + target_C0C1C2
         pad4C = target_A0A0A0 + target_B0B0B1

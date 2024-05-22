@@ -77,6 +77,7 @@ def get_params(argv='1'):
         augment=False,
         predict_tdoa=False,
         warmup=5, #number of warmup epochs
+        relative_dist = True,
 
         # METRIC
         average='macro',                 # Supports 'micro': sample-wise average and 'macro': class-wise average,
