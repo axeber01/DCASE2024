@@ -49,7 +49,7 @@ def center_mic_coords(mic_coords, mic_center):
 
 
 class TdoaLoss(nn.Module):
-    def __init__(self, fs=24000, c=343, nmics=4, ntdoas=6, max_tau=6, tracks=5):
+    def __init__(self, fs=24000, c=343, nmics=4, ntdoas=6, max_tau=6, tracks=5):#, max_events=3):
         super(TdoaLoss, self).__init__()
         loss_module = nn.CrossEntropyLoss(ignore_index=-100, reduction='none')
         self.pit_loss = PitWrapper(loss_module)
@@ -59,6 +59,7 @@ class TdoaLoss(nn.Module):
         self.ntdoas = ntdoas
         self.max_tau = max_tau
         self.tracks = tracks 
+        #self.max_events = max_events
 
         m1_coords = [0.042, 45, 35]
         m2_coords = [0.042, -45, -35]
@@ -72,7 +73,7 @@ class TdoaLoss(nn.Module):
 
     def get_tdoa_target(self, target):
         B, T, _, F, C = target.shape
-        Tr = 5 # up to 5 events simultaneously #self.tracks
+        Tr = 5 # up to 5 events is possible
         tdoas = torch.zeros((B, T, Tr, self.ntdoas))
         tdoas[:] = torch.nan
         ignore_idx = int(-100)
@@ -80,14 +81,14 @@ class TdoaLoss(nn.Module):
         for b in range(B):
             for t in range(T):
                 tr_cnt = 0
-                any_active = False
+                n_active = 0
                 for tr in range(Tr):
                     for c in range(C):
-                        if tr_cnt >= self.tracks:
+                        if tr_cnt >= Tr:
                             break
                         active = target[b, t, tr, 0, c]
                         if active:
-                            any_active = True
+                            n_active +=1
                             doa = target[b, t, tr, 1:4, c].squeeze()
                             dist = target[b, t, tr, 4, c]
                             source_loc = doa * dist
@@ -101,12 +102,19 @@ class TdoaLoss(nn.Module):
                                     tdoas[b, t, tr_cnt, cnt] = tdoa+max_tau
                                     cnt +=1
                             tr_cnt +=1
-                if not any_active:
+                #if n_active > 1:
+                #    print(n_active, flush=True)
+                if n_active == 0:
                     tdoas[b, t, :, :] = ignore_idx
-                elif tr_cnt < Tr and any_active:
+                elif tr_cnt < Tr and n_active > 0:
                     tdoas[b, t, tr_cnt:, :] = ignore_idx# tdoas[b, t, tr_cnt-1, :]
 
-        return tdoas[:, :, :self.tracks]
+        #randomly shuffle the events
+        tdoas = np.swapaxes(tdoas, 0, 2)
+        np.random.shuffle(tdoas) # shuffle along axis 0 (track axis)
+        tdoas = np.swapaxes(tdoas, 0, 2)
+
+        return tdoas[:, :, :self.tracks] # return only self.tracks tdoas per time slot
     
     def forward(self, pred, target):
         self.mic_locs = self.mic_locs.to(target.device)
@@ -484,7 +492,7 @@ def main(argv):
         elif '2024' in params['dataset_dir']:
             test_splits = [[4]]
             val_splits = [[4]]
-            train_splits = [[1, 2, 3, 9]] # split 1 and 2 are simulated data, 3 and 4 are real recordings, 9 is extra simulated with rare classes
+            train_splits = [[1, 2, 3, 9]]# [[1, 2, 3, 9]] # split 1 and 2 are simulated data, 3 and 4 are real recordings, 9 is extra simulated with rare classes
 
         else:
             log_string('ERROR: Unknown dataset splits')
@@ -589,7 +597,7 @@ def main(argv):
         log_string('Dumping recording-wise val results in: {}'.format(dcase_output_val_folder))
 
         if params['predict_tdoa']:
-            criterion_tdoa = TdoaLoss(fs=params['fs'], max_tau=params['max_tau'], tracks=params['tracks'])
+            criterion_tdoa = TdoaLoss(fs=params['fs'], max_tau=params['max_tau'], tracks=params['tracks'])# max_events=params['max_events'])
         else:
             criterion_tdoa = None
         

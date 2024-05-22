@@ -141,11 +141,7 @@ class NGCCPHAT(nn.Module):
                 nn.LeakyReLU(0.2)) for i, k in enumerate(self.mlp_kernels)])
         
 
-        self.final_conv = nn.Sequential(
-                nn.Conv1d(num_channels, num_out_channels, kernel_size=self.final_kernel),
-                nn.BatchNorm1d(num_out_channels),
-                nn.GELU()
-        )
+        self.final_conv = nn.Conv1d(num_channels, num_out_channels, kernel_size=self.final_kernel)
 
         if self.predict_tdoa:
             self.tdoa_conv = nn.Sequential(
