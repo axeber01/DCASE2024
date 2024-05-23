@@ -29,8 +29,8 @@ class DataGenerator(object):
         self._feat_dir = self._feat_cls.get_normalized_feat_dir()
         self._multi_accdoa = params['multi_accdoa']
         self.train_video = params['train_on_video']
-        if self._per_file:
-            self.train_video = False
+        # if self._per_file:
+        #    self.train_video = False
 
         self._filenames_list = list()
         self._nb_frames_file = 0     # Using a fixed number of frames in feat files. Updated in _get_label_filenames_sizes()
@@ -220,7 +220,6 @@ class DataGenerator(object):
                     yield feat
 
         else:
-            # print("self._nb_total_batches: ", self._nb_total_batches)
             for i in range(self._nb_total_batches):
                 # load feat and label to circular buffer. Always maintain atleast one batch worth feat and label in the
                 # circular buffer. If not keep refilling it.
@@ -240,14 +239,14 @@ class DataGenerator(object):
                         if self.train_video:
                             try:
                                 temp_frame = np.load(os.path.join(self._vid_frame_dir, self._filenames_list[file_cnt]))
-                                resized_frames = np.zeros((temp_frame.shape[0], 90, 180, 3))
-                                for idx, frame in enumerate(temp_frame):
-                                    resized_frame = np.resize(frame, (90, 180, 3))
-                                    resized_frames[idx] = resized_frame
-                                temp_frame = resized_frames
+                                #resized_frames = np.zeros((temp_frame.shape[0], 90, 180, 3))
+                                #for idx, frame in enumerate(temp_frame):
+                                #    resized_frame = np.resize(frame, (90, 180, 3))
+                                #    resized_frames[idx] = resized_frame
+                                #temp_frame = resized_frames
                             except IndexError:
                                 # print("In third except!")
-                                temp_frame = np.zeros((32, 90, 180, 3))
+                                temp_frame = np.zeros((32, 180, 360, 3))
 
                     if not self._per_file:
                         # Inorder to support variable length features, and labels of different resolution.
@@ -282,13 +281,13 @@ class DataGenerator(object):
                             vid_feat_extra_frames = self._vid_feature_batch_seq_len - temp_vid_feat.shape[0]
                             extra_vid_feat = np.ones(
                                 (vid_feat_extra_frames, temp_vid_feat.shape[1], temp_vid_feat.shape[2])) * 1e-6
-                            #if self.train_video:
-                            #    frame_extra_frames = self._vid_feature_batch_seq_len - temp_frame.shape[0]
-                            #    extra_frame = np.ones(
-                            #        (frame_extra_frames, temp_frame.shape[1], temp_frame.shape[2],
-                            #         temp_frame.shape[3])) * 1e-6
-                            #    print("extra_vid_feat: ", extra_vid_feat.shape)
-                            #    print("extra_frame: ", extra_frame.shape)
+                            if self.train_video:
+                                frame_extra_frames = self._vid_feature_batch_seq_len - temp_frame.shape[0]
+                                extra_frame = np.ones(
+                                    (frame_extra_frames, temp_frame.shape[1], temp_frame.shape[2],
+                                     temp_frame.shape[3])) * 1e-6
+                                # print("extra_vid_feat: ", extra_vid_feat.shape)
+                                # print("extra_frame: ", extra_frame.shape)
 
                         label_extra_frames = self._label_batch_seq_len - temp_label.shape[0]
                         if self._multi_accdoa is True:
@@ -304,9 +303,9 @@ class DataGenerator(object):
                         if self._modality == 'audio_visual':
                             for vf_row in extra_vid_feat:
                                 self._circ_buf_vid_feat.append(vf_row)
-                            #if self.train_video:
-                            #    for frame_row in extra_frame:
-                            #        self._circ_buf_vid_frame.append(frame_row)
+                            if self.train_video:
+                                for frame_row in extra_frame:
+                                    self._circ_buf_vid_frame.append(frame_row)
 
                     file_cnt = file_cnt + 1
 
@@ -321,7 +320,7 @@ class DataGenerator(object):
                     for v in range(self._vid_feature_batch_seq_len):
                         vid_feat[v, :, :] = self._circ_buf_vid_feat.popleft()
                     if self.train_video:
-                        vid_frame = np.zeros((self._vid_feature_batch_seq_len, 90, 180, 3))
+                        vid_frame = np.zeros((self._vid_feature_batch_seq_len, 180, 360, 3))
                         for v in range(self._vid_feature_batch_seq_len):
                             vid_frame[v, :, :, :] = self._circ_buf_vid_frame.popleft()
 

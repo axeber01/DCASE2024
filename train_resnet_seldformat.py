@@ -90,7 +90,7 @@ def main(argv):
         train_loss /= nb_train_batches
         print("Epoch: ", epoch_cnt, "Training loss: ", train_loss)
 
-    torch.save(model.state_dict(), 'final_model_down_to_1.pth')
+    torch.save(model.state_dict(), 'final_model_down_to_1_larger.pth')
 
 
 if __name__ == "__main__":

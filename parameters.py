@@ -49,8 +49,8 @@ def get_params(argv='1'):
         train_on_video=True,  # My added parameter!
 
         # DNN MODEL PARAMETERS
-        label_sequence_length=5, # 25, #5,    # Feature sequence length
-        batch_size=20, #12, #4, 128              # Batch size
+        label_sequence_length=1, #5, # 25, #50,    # Feature sequence length
+        batch_size=50, # 20, #12, #4, 128              # Batch size
         dropout_rate=0.05,           # Dropout rate, constant for all layers
         nb_cnn2d_filt=64,           # Number of CNN nodes, constant for each layer
         f_pool_size=[4, 4, 2],      # CNN frequency pooling, length of list = number of CNN layers, list value = pooling per layer
@@ -65,8 +65,8 @@ def get_params(argv='1'):
         nb_fnn_layers=1,
         fnn_size=128,  # FNN contents, length of list = number of layers, list value = number of nodes
 
-        nb_epochs=250,  # Train for maximum epochs
-        lr=1e-3, #1e-3,
+        nb_epochs=100, #100, #250,  # Train for maximum epochs
+        lr=1e-4, #1e-4, #1e-3,
 
         # METRIC
         average='macro',                 # Supports 'micro': sample-wise average and 'macro': class-wise average,
