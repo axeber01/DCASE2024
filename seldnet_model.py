@@ -9,7 +9,7 @@ from IPython import embed
 
 
 class MSELoss_ADPIT(object):
-    def __init__(self, relative_dist=False, no_dist=True, visual_loss=False):
+    def __init__(self, relative_dist=False, no_dist=False, visual_loss=False):
         super().__init__()
         self._each_loss = nn.MSELoss(reduction='none')
         self.relative_dist = relative_dist
