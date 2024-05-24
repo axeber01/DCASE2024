@@ -1,7 +1,6 @@
 #
 # A wrapper script that trains the SELDnet. The training stops when the early stopping metric - SELD error stops improving.
 #
-
 import os
 import sys
 import numpy as np
@@ -18,7 +17,9 @@ plot.switch_backend('agg')
 from IPython import embed
 from cls_compute_seld_results import ComputeSELDResults, reshape_3Dto2D
 from SELD_evaluation_metrics import distance_between_cartesian_coordinates
-import seldnet_model 
+import seldnet_model
+import torch.nn.functional as F
+
 
 def get_accdoa_labels(accdoa_in, nb_classes):
     x, y, z = accdoa_in[:, :, :nb_classes], accdoa_in[:, :, nb_classes:2*nb_classes], accdoa_in[:, :, 2*nb_classes:]
@@ -86,6 +87,33 @@ def test_epoch(data_generator, model, criterion, dcase_output_folder, params, de
                 data, vid_feat, target = values
                 data, vid_feat, target = torch.tensor(data).to(device).float(), torch.tensor(vid_feat).to(device).float(), torch.tensor(target).to(device).float()
                 output = model(data, vid_feat)
+            elif len(values) == 4:
+                _, _, frame, target = values
+                frame, target = torch.tensor(frame).to(device).float(), torch.tensor(target).to(device).float()
+                x = frame
+                true_bs = x.size(0)
+                x = x.view(x.size(0) * x.size(1), x.size(2), x.size(3), x.size(4))
+                x = x.permute(0, 3, 1, 2)
+                bs = params['batch_size']
+                if x.shape[0] > bs:
+                    max_cnt = x.shape[0] // bs
+                    output = []
+                    for cnt in range(0, max_cnt):
+                        this_x = x[cnt * bs:(cnt + 1) * bs]
+                        this_output = model(this_x)
+                        this_output = F.adaptive_avg_pool2d(this_output, (1, 1))
+                        this_output = this_output.view(this_output.size(0), -1)
+                        output.append(this_output)
+
+                    if len(x[(cnt + 1) * bs:]) > 0:
+                        this_x = x[(cnt + 1) * bs:]
+                        this_output = model(this_x)
+                        this_output = F.adaptive_avg_pool2d(this_output, (1, 1))
+                        this_output = this_output.view(this_output.size(0), -1)
+                        output.append(this_output)
+
+                output = torch.cat(output, dim=0)
+                output = output.view(true_bs, params['label_sequence_length'], -1)
             loss = criterion(output, target)
 
             if params['multi_accdoa'] is True:
@@ -189,6 +217,13 @@ def train_epoch(data_generator, optimizer, model, criterion, params, device):
             output = model(data)
         elif len(values) == 3:
             data, vid_feat, target = values
+            # print("data, vid_feat, target: ", data.shape, vid_feat.shape, target.shape)
+            data, vid_feat, target = torch.tensor(data).to(device).float(), torch.tensor(vid_feat).to(device).float(), torch.tensor(target).to(device).float()
+            optimizer.zero_grad()
+            output = model(data, vid_feat)
+        elif len(values) == 4:
+            data, vid_feat, vid_frame, target = values
+            # print("data, vid_feat, vid_frame, target: ", data.shape, vid_feat.shape, vid_frame.shape, target.shape)
             data, vid_feat, target = torch.tensor(data).to(device).float(), torch.tensor(vid_feat).to(device).float(), torch.tensor(target).to(device).float()
             optimizer.zero_grad()
             output = model(data, vid_feat)
@@ -199,6 +234,8 @@ def train_epoch(data_generator, optimizer, model, criterion, params, device):
         
         train_loss += loss.item()
         nb_train_batches += 1
+        if nb_train_batches % 200 == 0:
+            print("Iteration: ", nb_train_batches, "Training loss: ", train_loss/nb_train_batches)
         if params['quick_test'] and nb_train_batches == 4:
             break
 
@@ -293,6 +330,7 @@ def main(argv):
 
         # Load train and validation data
         print('Loading training dataset:')
+        print("here is split_cnt: ", split_cnt)
         data_gen_train = cls_data_generator.DataGenerator(
             params=params, split=train_splits[split_cnt]
         )
@@ -305,6 +343,7 @@ def main(argv):
         # Collect i/o data size and load model configuration
         if params['modality'] == 'audio_visual':
             data_in, vid_data_in, data_out = data_gen_train.get_data_sizes()
+            print("data_in, vid_data_in, data_out: ", data_in, vid_data_in, data_out)
             model = seldnet_model.SeldModel(data_in, data_out, params, vid_data_in).to(device)
         else:
             data_in, data_out = data_gen_train.get_data_sizes()
@@ -355,23 +394,23 @@ def main(argv):
             # VALIDATION
             # ---------------------------------------------------------------------
 
-
             start_time = time.time()
-            val_loss = test_epoch(data_gen_val, model, criterion, dcase_output_val_folder, params, device)
-            # Calculate the DCASE 2021 metrics - Location-aware detection and Class-aware localization scores
+            if epoch_cnt % 10 == 0:
+                val_loss = test_epoch(data_gen_val, model, criterion, dcase_output_val_folder, params, device)
+                # Calculate the DCASE 2021 metrics - Location-aware detection and Class-aware localization scores
 
-            val_ER, val_F, val_LE, val_dist_err, val_rel_dist_err, val_LR, val_seld_scr, classwise_val_scr = score_obj.get_SELD_Results(dcase_output_val_folder)
+                val_ER, val_F, val_LE, val_dist_err, val_rel_dist_err, val_LR, val_seld_scr, classwise_val_scr = score_obj.get_SELD_Results(dcase_output_val_folder)
 
-            val_time = time.time() - start_time
+                val_time = time.time() - start_time
 
-            # Save model if F-score is good
-            if val_F >= best_F:
-                best_val_epoch, best_ER, best_F, best_LE, best_LR, best_seld_scr, best_dist_err = epoch_cnt, val_ER, val_F, val_LE, val_LR, val_seld_scr, val_dist_err
-                best_rel_dist_err = val_rel_dist_err
-                torch.save(model.state_dict(), model_name)
-                patience_cnt = 0
-            else:
-                patience_cnt += 1
+                # Save model if F-score is good
+                if val_F >= best_F:
+                    best_val_epoch, best_ER, best_F, best_LE, best_LR, best_seld_scr, best_dist_err = epoch_cnt, val_ER, val_F, val_LE, val_LR, val_seld_scr, val_dist_err
+                    best_rel_dist_err = val_rel_dist_err
+                    torch.save(model.state_dict(), model_name)
+                    patience_cnt = 0
+                else:
+                    patience_cnt += 1
 
             # Print stats
             print(

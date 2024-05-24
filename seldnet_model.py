@@ -112,7 +112,7 @@ class SeldModel(torch.nn.Module):
     def __init__(self, in_feat_shape, out_shape, params, in_vid_feat_shape=None):
         super().__init__()
         self.nb_classes = params['unique_classes']
-        self.params=params
+        self.params = params
         self.conv_block_list = nn.ModuleList()
         if len(params['f_pool_size']):
             for conv_cnt in range(len(params['f_pool_size'])):
@@ -133,7 +133,7 @@ class SeldModel(torch.nn.Module):
 
         # fusion layers
         if in_vid_feat_shape is not None:
-            self.visual_embed_to_d_model = nn.Linear(in_features = int(in_vid_feat_shape[2]*in_vid_feat_shape[3]), out_features = self.params['rnn_size'] )
+            self.visual_embed_to_d_model = nn.Linear(in_features=int(in_vid_feat_shape[2]*in_vid_feat_shape[3]), out_features=self.params['rnn_size'] )
             self.transformer_decoder_layer = nn.TransformerDecoderLayer(d_model=self.params['rnn_size'], nhead=self.params['nb_heads'], batch_first=True)
             self.transformer_decoder = nn.TransformerDecoder(self.transformer_decoder_layer, num_layers=self.params['nb_transformer_layers'])
 

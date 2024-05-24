@@ -239,14 +239,14 @@ class DataGenerator(object):
                         if self.train_video:
                             try:
                                 temp_frame = np.load(os.path.join(self._vid_frame_dir, self._filenames_list[file_cnt]))
-                                #resized_frames = np.zeros((temp_frame.shape[0], 90, 180, 3))
-                                #for idx, frame in enumerate(temp_frame):
-                                #    resized_frame = np.resize(frame, (90, 180, 3))
-                                #    resized_frames[idx] = resized_frame
-                                #temp_frame = resized_frames
+                                resized_frames = np.zeros((temp_frame.shape[0], 90, 180, 3))
+                                for idx, frame in enumerate(temp_frame):
+                                    resized_frame = np.resize(frame, (90, 180, 3))
+                                    resized_frames[idx] = resized_frame
+                                temp_frame = resized_frames
                             except IndexError:
                                 # print("In third except!")
-                                temp_frame = np.zeros((32, 180, 360, 3))
+                                temp_frame = np.zeros((32, 90, 180, 3))
 
                     if not self._per_file:
                         # Inorder to support variable length features, and labels of different resolution.
@@ -320,7 +320,7 @@ class DataGenerator(object):
                     for v in range(self._vid_feature_batch_seq_len):
                         vid_feat[v, :, :] = self._circ_buf_vid_feat.popleft()
                     if self.train_video:
-                        vid_frame = np.zeros((self._vid_feature_batch_seq_len, 180, 360, 3))
+                        vid_frame = np.zeros((self._vid_feature_batch_seq_len, 90, 180, 3))
                         for v in range(self._vid_feature_batch_seq_len):
                             vid_frame[v, :, :, :] = self._circ_buf_vid_frame.popleft()
 
