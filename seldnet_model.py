@@ -9,20 +9,36 @@ from IPython import embed
 
 
 class MSELoss_ADPIT(object):
-    def __init__(self, relative_dist=False):
+    def __init__(self, relative_dist=False, visual_loss=False):
         super().__init__()
         self._each_loss = nn.MSELoss(reduction='none')
         self.relative_dist = relative_dist
+        self.visual_loss = visual_loss
         self.eps = 0.001
+
+        # relevant classes are [0 -female speech, 1-male speech, 2-clapping, 4-laugh, 6-footsteps, 9-music instrument]
+        self.visual_classes = [0, 1, 2, 4, 6, 9]
 
     def _each_calc(self, output, target):
         loss = self._each_loss(output, target)
+
         if self.relative_dist:
+            # scale loss with 1 / d
             # distance indices are 3, 7, 11
             # only scale loss for distances > 0
             loss[:, :, 3] = torch.where(target[:, :, 3] > 0., loss[:, :, 3] / (target[:, :, 3] + self.eps), loss[:, :, 3])
             loss[:, :, 7] = torch.where(target[:, :, 7] > 0., loss[:, :, 7] / (target[:, :, 7] + self.eps), loss[:, :, 7])
             loss[:, :, 11] = torch.where(target[:, :, 11] > 0., loss[:, :, 11] / (target[:, :, 11] + self.eps), loss[:, :, 11])
+
+
+        if self.visual_loss:
+            # distance indices are 3, 7, 11. Class is active if distance > 0
+            # if class is not active, set loss=0 (we do not want to train on non-active classes)
+            loss[:, :, 3] = torch.where(target[:, :, 3] == 0., 0., loss[:, :, 3])
+            loss[:, :, 7] = torch.where(target[:, :, 7] == 0., 0., loss[:, :, 7])
+            loss[:, :, 11] = torch.where(target[:, :, 11] == 0., 0., loss[:, :, 11])
+            # select only visual classes
+            loss = loss[:, :, :, self.visual_classes]
 
         return loss.mean(dim=(2))  # class-wise frame-level
 
