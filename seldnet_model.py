@@ -9,10 +9,11 @@ from IPython import embed
 
 
 class MSELoss_ADPIT(object):
-    def __init__(self, relative_dist=False, visual_loss=False):
+    def __init__(self, relative_dist=False, no_dist=True, visual_loss=False):
         super().__init__()
         self._each_loss = nn.MSELoss(reduction='none')
         self.relative_dist = relative_dist
+        self.no_dist = no_dist
         self.visual_loss = visual_loss
         self.eps = 0.001
 
@@ -22,14 +23,19 @@ class MSELoss_ADPIT(object):
     def _each_calc(self, output, target):
         loss = self._each_loss(output, target)
 
-        if self.relative_dist:
+        if self.no_dist:
+            # don't train on distances at all
+            loss[:, :, 3] = 0.
+            loss[:, :, 7] = 0.
+            loss[:, :, 11] = 0.
+
+        elif self.relative_dist:
             # scale loss with 1 / d
             # distance indices are 3, 7, 11
             # only scale loss for distances > 0
             loss[:, :, 3] = torch.where(target[:, :, 3] > 0., loss[:, :, 3] / (target[:, :, 3] + self.eps), loss[:, :, 3])
             loss[:, :, 7] = torch.where(target[:, :, 7] > 0., loss[:, :, 7] / (target[:, :, 7] + self.eps), loss[:, :, 7])
             loss[:, :, 11] = torch.where(target[:, :, 11] > 0., loss[:, :, 11] / (target[:, :, 11] + self.eps), loss[:, :, 11])
-
 
         if self.visual_loss:
             # distance indices are 3, 7, 11. Class is active if distance > 0
