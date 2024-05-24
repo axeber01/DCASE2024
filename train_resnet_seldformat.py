@@ -113,7 +113,7 @@ def main(argv):
             #if nb_train_batches % 500 == 0:
             #    print("Iteration ", nb_train_batches, "Loss: ", train_loss/nb_train_batches)
 
-        if epoch_cnt % 1 == 0:
+        if epoch_cnt % 10 == 0:
             val_loss = test_epoch(data_gen_val, model, criterion, dcase_output_val_folder, params, device)
             # Calculate the DCASE 2021 metrics - Location-aware detection and Class-aware localization scores
 
@@ -126,7 +126,7 @@ def main(argv):
                 best_rel_dist_err = val_rel_dist_err
                 torch.save(model.state_dict(), model_name)
 
-            print('best_val_epoch: ', best_val_epoch, '({:0.2f}/{:0.2f}/{:0.2f}/{:0.2f}/{:0.2f})'.format( best_F, best_LE, best_dist_err, best_rel_dist_err, best_seld_scr))
+            print('best_val_epoch: ', best_val_epoch, 'best_F, best_LE, best_dist_err, best_rel_dist_err, best_seld_scr' , '({:0.2f}/{:0.2f}/{:0.2f}/{:0.2f}/{:0.2f})'.format( best_F, best_LE, best_dist_err, best_rel_dist_err, best_seld_scr))
 
         train_loss /= nb_train_batches
         print("Epoch: ", epoch_cnt, "Training loss: ", train_loss)
