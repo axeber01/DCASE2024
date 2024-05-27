@@ -29,6 +29,7 @@ class DataGenerator(object):
         self._feat_dir = self._feat_cls.get_normalized_feat_dir()
         self._multi_accdoa = params['multi_accdoa']
         self.train_video = params['train_on_video']
+        self.scale_down = params['scale_down']
         # if self._per_file:
         #    self.train_video = False
 
@@ -166,7 +167,8 @@ class DataGenerator(object):
             for i in range(self._nb_total_batches):
                 # load feat and label to circular buffer. Always maintain atleast one batch worth feat and label in the
                 # circular buffer. If not keep refilling it.
-                while (len(self._circ_buf_feat) < self._feature_batch_seq_len or (hasattr(self, '_circ_buf_vid_feat') and hasattr(self, '_vid_feature_batch_seq_len') and len(self._circ_buf_vid_feat) < self._vid_feature_batch_seq_len)):
+                while (len(self._circ_buf_feat) < self._feature_batch_seq_len or (hasattr(self, '_circ_buf_vid_feat')
+                                                                                  and hasattr(self, '_vid_feature_batch_seq_len') and len(self._circ_buf_vid_feat) < self._vid_feature_batch_seq_len)):
                     temp_feat = np.load(os.path.join(self._feat_dir, self._filenames_list[file_cnt]))
 
                     for row_cnt, row in enumerate(temp_feat):
@@ -239,14 +241,16 @@ class DataGenerator(object):
                         if self.train_video:
                             try:
                                 temp_frame = np.load(os.path.join(self._vid_frame_dir, self._filenames_list[file_cnt]))
-                                resized_frames = np.zeros((temp_frame.shape[0], 90, 180, 3))
-                                for idx, frame in enumerate(temp_frame):
-                                    resized_frame = np.resize(frame, (90, 180, 3))
-                                    resized_frames[idx] = resized_frame
-                                temp_frame = resized_frames
+                                if self.scale_down:
+                                    resized_frames = np.zeros((temp_frame.shape[0], 90, 180, 3))
+                                    for idx, frame in enumerate(temp_frame):
+                                        resized_frame = np.resize(frame, (90, 180, 3))
+                                        resized_frames[idx] = resized_frame
+                                    temp_frame = resized_frames
                             except IndexError:
-                                # print("In third except!")
-                                temp_frame = np.zeros((32, 90, 180, 3))
+                                temp_frame = np.zeros((32, 180, 360, 3))
+                                if self.scale_down:
+                                    temp_frame = np.zeros((32, 90, 180, 3))
 
                     if not self._per_file:
                         # Inorder to support variable length features, and labels of different resolution.
@@ -320,7 +324,10 @@ class DataGenerator(object):
                     for v in range(self._vid_feature_batch_seq_len):
                         vid_feat[v, :, :] = self._circ_buf_vid_feat.popleft()
                     if self.train_video:
-                        vid_frame = np.zeros((self._vid_feature_batch_seq_len, 90, 180, 3))
+                        if self.scale_down:
+                            vid_frame = np.zeros((self._vid_feature_batch_seq_len, 90, 180, 3))
+                        else:
+                            vid_frame = np.zeros((self._vid_feature_batch_seq_len, 180, 360, 3))
                         for v in range(self._vid_feature_batch_seq_len):
                             vid_frame[v, :, :, :] = self._circ_buf_vid_frame.popleft()
 

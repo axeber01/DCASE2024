@@ -67,7 +67,7 @@ def main(argv):
     nb_epoch = 2 if params['quick_test'] else params['nb_epochs']
 
     optimizer = optim.Adam(model.parameters(), lr=params['lr'])
-    criterion = seldnet_model.MSELoss_ADPIT()
+    criterion = seldnet_model.MSELoss_ADPIT(relative_dist=True, visual_loss=True)
 
     unique_name = 'ResNet_train'
     # Dump results in DCASE output format for calculating final scores

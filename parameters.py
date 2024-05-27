@@ -47,6 +47,7 @@ def get_params(argv='1'):
         thresh_unify=15,    # Required for Multi-ACCDOA only. Threshold of unification for inference in degrees.
 
         train_on_video=True,  # My added parameter!
+        scale_down=True,
 
         # DNN MODEL PARAMETERS
         label_sequence_length=1, #5, # 25, #50,    # Feature sequence length
