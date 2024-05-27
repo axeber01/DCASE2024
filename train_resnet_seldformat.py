@@ -126,10 +126,10 @@ def main(argv):
                 best_rel_dist_err = val_rel_dist_err
                 torch.save(model.state_dict(), model_name)
 
-            print('best_val_epoch: ', best_val_epoch, 'best_F, best_LE, best_dist_err, best_rel_dist_err, best_seld_scr' , '({:0.2f}/{:0.2f}/{:0.2f}/{:0.2f}/{:0.2f})'.format( best_F, best_LE, best_dist_err, best_rel_dist_err, best_seld_scr))
+            print('best_val_epoch: ', best_val_epoch, 'best_F, best_LE, best_dist_err, best_rel_dist_err, best_seld_scr' , '({:0.2f}/{:0.2f}/{:0.2f}/{:0.2f}/{:0.2f})'.format( best_F, best_LE, best_dist_err, best_rel_dist_err, best_seld_scr), flush=True)
 
         train_loss /= nb_train_batches
-        print("Epoch: ", epoch_cnt, "Training loss: ", train_loss)
+        print("Epoch: ", epoch_cnt, "Training loss: ", train_loss, flush=True)
 
     torch.save(model.state_dict(), 'final_model_down_to_1_larger.pth')
 
