@@ -66,8 +66,8 @@ def get_params(argv='1'):
         nb_fnn_layers=1,
         fnn_size=128,  # FNN contents, length of list = number of layers, list value = number of nodes
 
-        nb_epochs=100, #100, #250,  # Train for maximum epochs
-        lr=1e-4, #1e-4, #1e-3,
+        nb_epochs=200, #100, #250,  # Train for maximum epochs
+        lr=1e-5, #1e-4, #1e-3,
 
         # METRIC
         average='macro',                 # Supports 'micro': sample-wise average and 'macro': class-wise average,
