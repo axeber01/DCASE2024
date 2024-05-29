@@ -27,19 +27,25 @@ def main(argv):
     model = torch.nn.Sequential(*(list(model.children())[:-2]))
     # Define the new convolutional layers
     conv_layer_1 = nn.Conv2d(2048, 1024, kernel_size=1)
-    conv_layer_2 = nn.Conv2d(1024, 128, kernel_size=1)
+    conv_layer_2 = nn.Conv2d(1024, 156, kernel_size=1)
     conv_layer_3 = nn.Conv2d(128, 1, kernel_size=1)
     conv_layer_up = nn.Conv2d(1, 156, kernel_size=1)
 
     # Concatenate the ResNet model with the new convolutional layers
-    #model = torch.nn.Sequential(model, conv_layer_1, conv_layer_2, conv_layer_3, conv_layer_up)
+    model = torch.nn.Sequential(model, conv_layer_1, conv_layer_2)
 
     conv_layer = nn.Conv2d(2048, 1024, kernel_size=1)
     conv_layer_2 = nn.Conv2d(1024, 156, kernel_size=1)
-    model = torch.nn.Sequential(model, conv_layer, conv_layer_2)
+    #model = torch.nn.Sequential(model, conv_layer, conv_layer_2)
 
-    # Ensure parameters require gradients
+    # Freeze all layers except the last two
     for param in model.parameters():
+        param.requires_grad = False
+
+    # Unfreeze the parameters of the last two layers
+    for param in conv_layer_1.parameters():
+        param.requires_grad = True
+    for param in conv_layer_2.parameters():
         param.requires_grad = True
 
     torch.cuda.empty_cache()
@@ -70,7 +76,7 @@ def main(argv):
     optimizer = optim.Adam(model.parameters(), lr=params['lr'])
     criterion = seldnet_model.MSELoss_ADPIT(relative_dist=True, visual_loss=True)
 
-    unique_name = 'ResNet_train'
+    unique_name = 'ResNet_train_fronzen'
     # Dump results in DCASE output format for calculating final scores
     dcase_output_val_folder = os.path.join(params['dcase_output_dir'],
                                             '{}_{}_val'.format(unique_name, strftime("%Y%m%d%H%M%S", gmtime())))
