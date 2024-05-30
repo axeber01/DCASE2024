@@ -212,7 +212,7 @@ class DataGenerator(object):
                 feat = np.transpose(feat, (0, 2, 1, 3))
 
                 if self._modality == 'audio_visual':
-                    vid_feat = np.zeros((self._vid_feature_batch_seq_len, 7, 7))
+                    vid_feat = np.zeros((self._vid_feature_batch_seq_len, 1024, 7, 7))
                     for v in range(self._vid_feature_batch_seq_len):
                         vid_feat[v, :, :] = self._circ_buf_vid_feat.popleft()
                     vid_feat = self._vid_feat_split_in_seqs(vid_feat, self._vid_feature_seq_len)
@@ -236,8 +236,9 @@ class DataGenerator(object):
                     if self._modality == 'audio_visual':
                         try:
                             temp_vid_feat = np.load(os.path.join(self._vid_feat_dir, self._filenames_list[file_cnt]))
+                            print("Here is temp_vid_feat in generator: ", temp_vid_feat.shape, flush=True)
                         except IndexError:
-                            temp_vid_feat = np.zeros((32, 7, 7))
+                            temp_vid_feat = np.zeros((32, 1024, 7, 7))
                         if self.train_video:
                             try:
                                 temp_frame = np.load(os.path.join(self._vid_frame_dir, self._filenames_list[file_cnt]))
