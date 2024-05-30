@@ -143,6 +143,7 @@ class ConvBlock(nn.Module):
 class SeldModel(torch.nn.Module):
     def __init__(self, in_feat_shape, out_shape, params, in_vid_feat_shape=None):
         super().__init__()
+        print("Setting upp the model", flush=True)
         self.nb_classes = params['unique_classes']
         self.params = params
         self.conv_block_list = nn.ModuleList()
@@ -165,6 +166,7 @@ class SeldModel(torch.nn.Module):
 
         # fusion layers
         if in_vid_feat_shape is not None:
+            print("Setting up the visuel conv layers!", flush=True)
             self.visual_conv_layers = nn.Sequential(
                 nn.Conv2d(in_channels=1024, out_channels=512, kernel_size=3, stride=1, padding=1),  # 1024 -> 512 channels
                 nn.ReLU(),
