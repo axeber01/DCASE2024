@@ -164,6 +164,7 @@ class DataGenerator(object):
 
         file_cnt = 0
         if self._is_eval:
+            print("Now in eval in generator!")
             for i in range(self._nb_total_batches):
                 # load feat and label to circular buffer. Always maintain atleast one batch worth feat and label in the
                 # circular buffer. If not keep refilling it.
@@ -176,6 +177,7 @@ class DataGenerator(object):
 
                     if self._modality == 'audio_visual':
                         temp_vid_feat = np.load(os.path.join(self._vid_feat_dir, self._filenames_list[file_cnt]))
+                        print("Here is temp_vid_feat: ", temp_vid_feat.shape)
                         for vf_row_cnt, vf_row in enumerate(temp_vid_feat):
                             self._circ_buf_vid_feat.append(vf_row)
                         if self.train_video:
