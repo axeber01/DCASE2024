@@ -165,6 +165,19 @@ class SeldModel(torch.nn.Module):
 
         # fusion layers
         if in_vid_feat_shape is not None:
+            self.visual_conv_layers = nn.Sequential(
+                nn.Conv2d(in_channels=1024, out_channels=512, kernel_size=3, stride=1, padding=1),  # 1024 -> 512 channels
+                nn.ReLU(),
+                nn.MaxPool2d(kernel_size=2, stride=2),  # Downsample by a factor of 2
+
+                nn.Conv2d(in_channels=512, out_channels=256, kernel_size=3, stride=1, padding=1),  # 512 -> 256 channels
+                nn.ReLU(),
+                nn.Conv2d(in_channels=256, out_channels=128, kernel_size=3, stride=1, padding=1),  # 256 -> 128 channels
+                nn.ReLU(),
+
+                nn.Conv2d(in_channels=128, out_channels=1, kernel_size=3, stride=1, padding=1),  # 128 -> 1 channel
+                nn.ReLU()
+                )
             self.visual_embed_to_d_model = nn.Linear(in_features=int(in_vid_feat_shape[2]*in_vid_feat_shape[3]), out_features=self.params['rnn_size'] )
             self.transformer_decoder_layer = nn.TransformerDecoderLayer(d_model=self.params['rnn_size'], nhead=self.params['nb_heads'], batch_first=True)
             self.transformer_decoder = nn.TransformerDecoder(self.transformer_decoder_layer, num_layers=self.params['nb_transformer_layers'])
@@ -196,7 +209,11 @@ class SeldModel(torch.nn.Module):
             x = self.layer_norm_list[mhsa_cnt](x)
 
         if vid_feat is not None:
+            print("Here is vid_feat before: ", vid_feat.shape, flush=True)
+            vid_feat = self.visual_conv_layers(vid_feat)
+            print("After: ", vid_feat.shape, flush=True)
             vid_feat = vid_feat.view(vid_feat.shape[0], vid_feat.shape[1], -1)  # b x 50 x 49
+            print("After view: ", vid_feat.shape, flush=True)
             vid_feat = self.visual_embed_to_d_model(vid_feat)
             x = self.transformer_decoder(x, vid_feat)
 
