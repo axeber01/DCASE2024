@@ -283,7 +283,6 @@ class DataGenerator(object):
 
                         if self._modality == 'audio_visual':
                             vid_feat_extra_frames = self._vid_feature_batch_seq_len - temp_vid_feat.shape[0]
-                            print("vid_feat_extra_frames: ", vid_feat_extra_frames.shape)
                             extra_vid_feat = np.ones(
                                 (vid_feat_extra_frames, temp_vid_feat.shape[1], temp_vid_feat.shape[2])) * 1e-6
                             print("extra_vid_feat: ", extra_vid_feat.shape)
