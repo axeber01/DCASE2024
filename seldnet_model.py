@@ -143,7 +143,6 @@ class ConvBlock(nn.Module):
 class SeldModel(torch.nn.Module):
     def __init__(self, in_feat_shape, out_shape, params, in_vid_feat_shape=None):
         super().__init__()
-        print("Setting upp the model", flush=True)
         self.nb_classes = params['unique_classes']
         self.params = params
         self.conv_block_list = nn.ModuleList()
@@ -166,21 +165,20 @@ class SeldModel(torch.nn.Module):
 
         # fusion layers
         if in_vid_feat_shape is not None:
-            print("Setting up the visuel conv layers!", flush=True)
             self.visual_conv_layers = nn.Sequential(
-                nn.Conv2d(in_channels=1024, out_channels=512, kernel_size=3, stride=1, padding=1),  # 1024 -> 512 channels
+                nn.Conv3d(in_channels=1024, out_channels=512, kernel_size=(1, 3, 3), stride=(1, 1, 1), padding=(0, 1, 1)),  # 1024 -> 512 channels
                 nn.ReLU(),
-                nn.MaxPool2d(kernel_size=2, stride=2),  # Downsample by a factor of 2
+                nn.MaxPool3d(kernel_size=(1, 2, 2), stride=(1, 2, 2)),  # Downsample by a factor of 2
 
-                nn.Conv2d(in_channels=512, out_channels=256, kernel_size=3, stride=1, padding=1),  # 512 -> 256 channels
+                nn.Conv3d(in_channels=512, out_channels=256, kernel_size=(1, 3, 3), stride=(1, 1, 1), padding=(0, 1, 1)),  # 512 -> 256 channels
                 nn.ReLU(),
-                nn.Conv2d(in_channels=256, out_channels=128, kernel_size=3, stride=1, padding=1),  # 256 -> 128 channels
+                nn.Conv3d(in_channels=256, out_channels=128, kernel_size=(1, 3, 3), stride=(1, 1, 1), padding=(0, 1, 1)),  # 256 -> 128 channels
                 nn.ReLU(),
 
-                nn.Conv2d(in_channels=128, out_channels=1, kernel_size=3, stride=1, padding=1),  # 128 -> 1 channel
+                nn.Conv3d(in_channels=128, out_channels=1, kernel_size=(1, 3, 3), stride=(1, 1, 1), padding=(0, 1, 1)),  # 128 -> 1 channel
                 nn.ReLU()
-                )
-            self.visual_embed_to_d_model = nn.Linear(in_features=int(in_vid_feat_shape[2]*in_vid_feat_shape[3]), out_features=self.params['rnn_size'] )
+            )
+            self.visual_embed_to_d_model = nn.Linear(in_features=int(in_vid_feat_shape[3]*in_vid_feat_shape[4]), out_features=self.params['rnn_size'] )
             self.transformer_decoder_layer = nn.TransformerDecoderLayer(d_model=self.params['rnn_size'], nhead=self.params['nb_heads'], batch_first=True)
             self.transformer_decoder = nn.TransformerDecoder(self.transformer_decoder_layer, num_layers=self.params['nb_transformer_layers'])
 
@@ -195,7 +193,6 @@ class SeldModel(torch.nn.Module):
 
     def forward(self, x, vid_feat=None):
         """input: (batch_size, mic_channels, time_steps, mel_bins)"""
-        print("IN FORWARD!", flush=True)
         for conv_cnt in range(len(self.conv_block_list)):
             x = self.conv_block_list[conv_cnt](x)
 

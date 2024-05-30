@@ -236,7 +236,6 @@ class DataGenerator(object):
                     if self._modality == 'audio_visual':
                         try:
                             temp_vid_feat = np.load(os.path.join(self._vid_feat_dir, self._filenames_list[file_cnt]))
-                            print("Here is temp_vid_feat in generator: ", temp_vid_feat.shape, flush=True)
                         except IndexError:
                             temp_vid_feat = np.zeros((32, 1024, 7, 7))
                         if self.train_video:
