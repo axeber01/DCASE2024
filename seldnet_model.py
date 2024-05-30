@@ -178,7 +178,9 @@ class SeldModel(torch.nn.Module):
                 nn.Conv3d(in_channels=128, out_channels=1, kernel_size=(1, 3, 3), stride=(1, 1, 1), padding=(0, 1, 1)),  # 128 -> 1 channel
                 nn.ReLU()
             )
-            self.visual_embed_to_d_model = nn.Linear(in_features=int(in_vid_feat_shape[3]*in_vid_feat_shape[4]), out_features=self.params['rnn_size'] )
+            #self.visual_embed_to_d_model = nn.Linear(in_features=int(in_vid_feat_shape[3]*in_vid_feat_shape[4]), out_features=self.params['rnn_size'] )
+            self.visual_embed_to_d_model = nn.Linear(in_features=7*7,
+                                                     out_features=self.params['rnn_size'])
             self.transformer_decoder_layer = nn.TransformerDecoderLayer(d_model=self.params['rnn_size'], nhead=self.params['nb_heads'], batch_first=True)
             self.transformer_decoder = nn.TransformerDecoder(self.transformer_decoder_layer, num_layers=self.params['nb_transformer_layers'])
 
