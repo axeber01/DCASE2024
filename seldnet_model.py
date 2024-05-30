@@ -166,16 +166,21 @@ class SeldModel(torch.nn.Module):
         # fusion layers
         if in_vid_feat_shape is not None:
             self.visual_conv_layers = nn.Sequential(
-                nn.Conv3d(in_channels=1, out_channels=512, kernel_size=(1, 3, 3), stride=1, padding=(0, 1, 1)),  # 1 -> 512 channels
+                nn.Conv3d(in_channels=1024, out_channels=512, kernel_size=(1, 3, 3), stride=1, padding=(0, 1, 1)),
+                # 1024 -> 512 channels
                 nn.ReLU(),
-                nn.MaxPool3d(kernel_size=(1, 2, 2), stride=(1, 2, 2)),  # Downsample along the time and spatial dimensions
+                nn.MaxPool3d(kernel_size=(1, 2, 2), stride=(1, 2, 2)),
+                # Downsample along the spatial dimensions, not time
 
-                nn.Conv3d(in_channels=512, out_channels=256, kernel_size=(1, 3, 3), stride=1, padding=(0, 1, 1)),  # 512 -> 256 channels
+                nn.Conv3d(in_channels=512, out_channels=256, kernel_size=(1, 3, 3), stride=1, padding=(0, 1, 1)),
+                # 512 -> 256 channels
                 nn.ReLU(),
-                nn.Conv3d(in_channels=256, out_channels=128, kernel_size=(1, 3, 3), stride=1, padding=(0, 1, 1)),  # 256 -> 128 channels
+                nn.Conv3d(in_channels=256, out_channels=128, kernel_size=(1, 3, 3), stride=1, padding=(0, 1, 1)),
+                # 256 -> 128 channels
                 nn.ReLU(),
 
-                nn.Conv3d(in_channels=128, out_channels=1, kernel_size=(1, 3, 3), stride=1, padding=(0, 1, 1)),  # 128 -> 1 channel
+                nn.Conv3d(in_channels=128, out_channels=1, kernel_size=(1, 3, 3), stride=1, padding=(0, 1, 1)),
+                # 128 -> 1 channel
                 nn.ReLU()
             )
             #self.visual_embed_to_d_model = nn.Linear(in_features=int(in_vid_feat_shape[3]*in_vid_feat_shape[4]), out_features=self.params['rnn_size'] )
