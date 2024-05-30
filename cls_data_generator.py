@@ -321,7 +321,7 @@ class DataGenerator(object):
                 feat = np.reshape(feat, (self._feature_batch_seq_len, self._nb_ch, self._nb_mel_bins))
 
                 if self._modality == 'audio_visual':
-                    vid_feat = np.zeros((self._vid_feature_batch_seq_len, 7, 7))
+                    vid_feat = np.zeros((self._vid_feature_batch_seq_len, 1024, 7, 7))
                     for v in range(self._vid_feature_batch_seq_len):
                         vid_feat[v, :, :] = self._circ_buf_vid_feat.popleft()
                     if self.train_video:
