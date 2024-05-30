@@ -220,6 +220,8 @@ class SeldModel(torch.nn.Module):
             print("After permute: ", vid_feat.shape, flush=True)
             vid_feat = self.visual_conv_layers(vid_feat)
             print("After: ", vid_feat.shape, flush=True)
+            vid_feat = vid_feat.permute(0, 2, 1, 3, 4)
+            print("After permute back: ", vid_feat.shape, flush=True)
             vid_feat = vid_feat.view(vid_feat.shape[0], vid_feat.shape[1], -1)  # b x 50 x 49
             print("After view: ", vid_feat.shape, flush=True)
             vid_feat = self.visual_embed_to_d_model(vid_feat)
