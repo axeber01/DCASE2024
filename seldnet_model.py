@@ -216,6 +216,8 @@ class SeldModel(torch.nn.Module):
 
         if vid_feat is not None:
             print("Here is vid_feat before: ", vid_feat.shape, flush=True)
+            vid_feat = vid_feat.permute(0, 2, 1, 3, 4)  # [batch_size, 1024, seq_length, 7, 7]
+            print("After permute: ", vid_feat.shape, flush=True)
             vid_feat = self.visual_conv_layers(vid_feat)
             print("After: ", vid_feat.shape, flush=True)
             vid_feat = vid_feat.view(vid_feat.shape[0], vid_feat.shape[1], -1)  # b x 50 x 49
