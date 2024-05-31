@@ -27,6 +27,17 @@ from cst_former.CST_former_model import CST_former
 from torchsummary import summary
 from warmup_scheduler import GradualWarmupScheduler
 
+def scramble(a, axis=-1):
+    """
+    Return an array with the values of `a` independently shuffled along the
+    given axis
+    """ 
+    b = a.swapaxes(axis, -1)
+    n = a.shape[axis]
+    idx = np.random.choice(n, n, replace=False)
+    b = b[..., idx]
+    return b.swapaxes(axis, -1)
+
 def deg2rad(deg):
     return deg * 2 * np.pi / 360
 
@@ -49,7 +60,7 @@ def center_mic_coords(mic_coords, mic_center):
 
 
 class TdoaLoss(nn.Module):
-    def __init__(self, fs=24000, c=343, nmics=4, ntdoas=6, max_tau=6, tracks=5):#, max_events=3):
+    def __init__(self, fs=24000, c=343, nmics=4, ntdoas=6, max_tau=6, tracks=5):
         super(TdoaLoss, self).__init__()
         loss_module = nn.CrossEntropyLoss(ignore_index=-100, reduction='none')
         self.pit_loss = PitWrapper(loss_module)
@@ -59,7 +70,6 @@ class TdoaLoss(nn.Module):
         self.ntdoas = ntdoas
         self.max_tau = max_tau
         self.tracks = tracks 
-        #self.max_events = max_events
 
         m1_coords = [0.042, 45, 35]
         m2_coords = [0.042, -45, -35]
@@ -102,19 +112,20 @@ class TdoaLoss(nn.Module):
                                     tdoas[b, t, tr_cnt, cnt] = tdoa+max_tau
                                     cnt +=1
                             tr_cnt +=1
-                #if n_active > 1:
-                #    print(n_active, flush=True)
                 if n_active == 0:
                     tdoas[b, t, :, :] = ignore_idx
                 elif tr_cnt < Tr and n_active > 0:
-                    tdoas[b, t, tr_cnt:, :] = ignore_idx# tdoas[b, t, tr_cnt-1, :]
+                    tdoas[b, t, tr_cnt:, :] = tdoas[b, t, tr_cnt-1, :] # repeat the last event
 
-        #randomly shuffle the events
-        tdoas = np.swapaxes(tdoas, 0, 2)
-        np.random.shuffle(tdoas) # shuffle along axis 0 (track axis)
-        tdoas = np.swapaxes(tdoas, 0, 2)
 
-        return tdoas[:, :, :self.tracks] # return only self.tracks tdoas per time slot
+        #tdoas = scramble(tdoas, axis=2) # don't scramble, because we should have same permutations in t-direction
+        
+        #tdoas = np.swapaxes(tdoas, 0, 2)
+        #np.random.shuffle(tdoas) # shuffle along axis 0 (track axis)
+        #tdoas = np.swapaxes(tdoas, 0, 2)
+        tdoas = tdoas[:, :, :self.tracks]
+
+        return tdoas
     
     def forward(self, pred, target):
         self.mic_locs = self.mic_locs.to(target.device)
@@ -142,7 +153,8 @@ class TdoaLoss(nn.Module):
         else:
             acc = 0.
 
-        return loss.mean(), acc
+        valid_idx = torch.where(loss > 0.)[0]
+        return loss[valid_idx].mean(), acc
 
 def get_accdoa_labels(accdoa_in, nb_classes):
     x, y, z = accdoa_in[:, :, :nb_classes], accdoa_in[:, :, nb_classes:2*nb_classes], accdoa_in[:, :, 2*nb_classes:]
@@ -400,21 +412,25 @@ def train_epoch(data_generator, optimizer, model, criterion, params, device, cri
             loss1 = criterion(output, target)
             loss2, acc = criterion_tdoa(output_tdoa, target)
             if tdoa_loss_ma == -1:
-                tdoa_loss_ma = loss2.item()
-                tdoa_acc_ma = acc
+                if not torch.isnan(loss2):
+                    tdoa_loss_ma = loss2.item()
+                    tdoa_acc_ma = acc
             else:
-                tdoa_loss_ma = 0.95 * tdoa_loss_ma + 0.05 * loss2.item()
-                if acc > 0:
+                if not torch.isnan(loss2):
+                    tdoa_loss_ma = 0.95 * tdoa_loss_ma + 0.05 * loss2.item()
                     tdoa_acc_ma = 0.95 * tdoa_acc_ma + 0.05 * acc
             print("tdoa loss: " + str(tdoa_loss_ma)+ ", tdoa acc: " + str(tdoa_acc_ma), flush=True)
             loss = (1.0 - params['lambda']) * loss1 + params['lambda'] * loss2
         else:
             loss = criterion(output, target)
-        loss.backward()
-        optimizer.step()
         
-        train_loss += loss.item()
-        nb_train_batches += 1
+        if not torch.isnan(loss):
+            loss.backward()
+            optimizer.step()
+        
+            train_loss += loss.item()
+            nb_train_batches += 1
+
         if params['quick_test'] and nb_train_batches == 4:
             break
 

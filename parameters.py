@@ -14,14 +14,14 @@ def get_params(argv='1'):
         pretrained_model_weights='3_1_dev_split0_multiaccdoa_foa_model.h5',
 
         # INPUT PATH
-        #dataset_dir='./data_2024/',  # Base folder containing the foa/mic and metadata folders
+        dataset_dir='./data_2024/',  # Base folder containing the foa/mic and metadata folders
         #dataset_dir='./sim_20_rooms/',
-        dataset_dir='./data_2024_soundq_aug/',
+        #dataset_dir='./data_2024_soundq_aug/',
 
         # OUTPUT PATHS
-        #feat_label_dir='./data_2024/seld_feat_label/',  # Directory to dump extracted features and labels
+        feat_label_dir='./data_2024/seld_feat_label/',  # Directory to dump extracted features and labels
         #feat_label_dir='./sim_20_rooms/seld_feat_label/',
-        feat_label_dir='./data_2024_soundq_aug/seld_feat_label/',
+        #feat_label_dir='./data_2024_soundq_aug/seld_feat_label/',
 
         model_dir='models',  # Dumps the trained models and training curves in this folder
         dcase_output_dir='results',  # recording-wise results are dumped in this path.
@@ -96,7 +96,7 @@ def get_params(argv='1'):
         CMT_block = False,          # Use of LPU & IRFNN
         CMT_split = False,          # Apply LPU & IRFNN on S, T attention layers independently
         use_ngcc = False,
-
+        use_mfcc = False,
         
     )
 
@@ -285,13 +285,21 @@ def get_params(argv='1'):
 
         params['finetune_mode'] = True#True
         params['raw_chunks'] = True
-        params['pretrained_model_weights'] = 'models_audio/9_ngccphat-6delays-tdoa_dev_split0_multiaccdoa_mic_gcc_model_final.h5'
+        #params['pretrained_model_weights'] = 'models_audio/9_ngccphat-6delays-tdoa_dev_split0_multiaccdoa_mic_gcc_model_final.h5'
+        #params['pretrained_model_weights'] = 'models_audio/9_tdoa-1event-new_dev_split0_multiaccdoa_mic_gcc_model_final.h5'
+        #params['pretrained_model_weights'] = 'models_audio/9_tdoa-2event-new_dev_split0_multiaccdoa_mic_gcc_model_final.h5'
+        #params['pretrained_model_weights'] = 'models_audio/9_tdoa-3event-new_dev_split0_multiaccdoa_mic_gcc_model_final.h5'
+        #params['pretrained_model_weights'] = 'models_audio/9_tdoa-3event-new-1outchannel_dev_split0_multiaccdoa_mic_gcc_model_final.h5'
+        #params['pretrained_model_weights'] = 'models_audio/9_tdoa-3event-new-4outchannel_dev_split0_multiaccdoa_mic_gcc_model_final.h5'
+        #params['pretrained_model_weights'] = 'models_audio/9_tdoa-1event-fixed-repeat_dev_split0_multiaccdoa_mic_gcc_model_final.h5'
+        params['pretrained_model_weights'] = 'models_audio/9_tdoa-3event-fixed-repeat_dev_split0_multiaccdoa_mic_gcc_model_final.h5' 
         params['dataset'] = 'mic'
         params['n_mics'] = 4
         params['ngcc_channels'] = 32
         params['ngcc_out_channels'] = 16
         params['saved_chunks'] = True
         params['use_mel'] = True
+        params['use_mfcc'] = False
         #params['nb_epochs'] = 1000
         #params['eval_freq'] = 25
 
