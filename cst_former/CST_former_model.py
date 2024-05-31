@@ -14,7 +14,7 @@ class CST_former(torch.nn.Module):
     """
     CST_former : Channel-Spectral-Temporal Transformer for SELD task
     """
-    def __init__(self, in_feat_shape, out_shape, params):
+    def __init__(self, in_feat_shape, out_shape, params, in_vid_feat_shape=None):
         super().__init__()
         self.nb_classes = params['unique_classes']
         self.t_pooling_loc = params["t_pooling_loc"]
