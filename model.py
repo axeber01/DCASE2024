@@ -39,7 +39,7 @@ class NGCCModel(torch.nn.Module):
 
         self.ngcc = NGCCPHAT(max_tau=params['max_tau'], n_mel_bins=self.mel_bins , use_sinc=True,
                                         sig_len=self.sig_len , num_channels=self.ngcc_channels, num_out_channels=self.ngcc_out_channels, fs=self.fs,
-                                        normalize_input=False, normalize_output=False, pool_len=1, use_mel=params['use_mel'],
+                                        normalize_input=False, normalize_output=False, pool_len=1, use_mel=params['use_mel'], use_mfcc=params['use_mfcc'],
                                         predict_tdoa=params['predict_tdoa'], tracks=params['tracks'], fixed_tdoa=params['fixed_tdoa'])
 
         self.nb_classes = params['unique_classes']
@@ -118,7 +118,7 @@ class NGCCModel(torch.nn.Module):
 
         doa2 = doa2.reshape((doa.size(0), doa.size(1), -1))
         if self.predict_tdoa:
-            return doa2, tdoa[:, ::self.pool_len] # pool tdoas to get correct resolution
+            return doa2, tdoa.mean(dim=1, keepdims=True) #tdoa[:, ::self.pool_len] # pool tdoas to get correct resolution
         else:
             return doa2
     

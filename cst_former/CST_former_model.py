@@ -45,7 +45,7 @@ class CST_former(torch.nn.Module):
         if params['use_ngcc']:
             self.ngcc = NGCCPHAT(max_tau=params['max_tau'], n_mel_bins=self.mel_bins , use_sinc=True,
                                         sig_len=self.sig_len , num_channels=self.ngcc_channels, num_out_channels=self.ngcc_out_channels, fs=self.fs,
-                                        normalize_input=False, normalize_output=False, pool_len=1, use_mel=params['use_mel'],
+                                        normalize_input=False, normalize_output=False, pool_len=1, use_mel=params['use_mel'], use_mfcc=params['use_mfcc'],
                                         predict_tdoa=params['predict_tdoa'], tracks=params['tracks'], fixed_tdoa=params['fixed_tdoa'])
 
         if params['use_salsalite']:

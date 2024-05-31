@@ -88,7 +88,7 @@ class GCC(nn.Module):
 class NGCCPHAT(nn.Module):
     def __init__(self, max_tau=64, n_mel_bins=64, use_sinc=True,
                                         sig_len=960, num_channels=128, num_out_channels=8, fs=24000,
-                                        normalize_input=True, normalize_output=False, pool_len=5, use_mel=True,
+                                        normalize_input=True, normalize_output=False, pool_len=5, use_mel=True, use_mfcc=False,
                                         tracks=5, predict_tdoa=False, fixed_tdoa=False):
         super().__init__()
 
@@ -109,9 +109,10 @@ class NGCCPHAT(nn.Module):
         self.pool_len = pool_len
         self.n_mel_bins = n_mel_bins
         self.use_mel = use_mel
+        self.use_mfcc = use_mfcc
         self.tracks=tracks
         self.predict_tdoa = predict_tdoa
-        self.fixed_tdoa = fixed_tdoa
+        self.fixed_tdoa = fixed_tdoa 
 
         sincnet_params = {'input_dim': sig_len,
                           'fs': fs,
@@ -141,11 +142,7 @@ class NGCCPHAT(nn.Module):
                 nn.LeakyReLU(0.2)) for i, k in enumerate(self.mlp_kernels)])
         
 
-        self.final_conv = nn.Sequential(
-                nn.Conv1d(num_channels, num_out_channels, kernel_size=self.final_kernel),
-                nn.BatchNorm1d(num_out_channels),
-                nn.GELU()
-        )
+        self.final_conv = nn.Conv1d(num_channels, num_out_channels, kernel_size=self.final_kernel)
 
         if self.predict_tdoa:
             self.tdoa_conv = nn.Sequential(
@@ -182,6 +179,13 @@ class NGCCPHAT(nn.Module):
             self.spec_transform = torchaudio.transforms.Spectrogram(n_fft=self.nfft, win_length=2*sig_len, hop_length=sig_len, normalized=True)
             self.mel_transform = torchaudio.transforms.MelScale(n_mels=self.n_mel_bins, sample_rate=fs, n_stft=self.nfft//2+1, norm='slaney')
             self.to_db = torchaudio.transforms.AmplitudeToDB(stype="power", top_db=80)
+            if self.use_mfcc:
+                melkwargs = {"n_fft": self.nfft, "win_length": 2*sig_len, "power": 1,
+                                         "hop_length": sig_len, "n_mels": 80, "f_min": 20, "f_max": 7000}
+                self.mfcc = torchaudio.transforms.MFCC(sample_rate=fs,
+                                               n_mfcc=n_mel_bins, log_mels=True,
+                                               melkwargs=melkwargs)
+ 
 
         else:
             in_size = sig_len // self.final_kernel
@@ -284,10 +288,14 @@ class NGCCPHAT(nn.Module):
         if self.use_mel:
             B, M, T, L = audio.shape
             audio_in = audio.reshape(B, M, T*L) #(batch, mics, time)
-            mag_spectra = self.spec_transform(audio_in)[:, :, :, :T] # (batch, mics, freq, time)
+            if self.use_mfcc:
+                mel_spectra = self.mfcc(audio_in)[:, :, :, :T]
+            else:
+                mag_spectra = self.spec_transform(audio_in)[:, :, :, :T] # (batch, mics, freq, time)
 
-            mel_spectra = self.mel_transform(mag_spectra) # (batch, mics, #mel_weights, time)
-            mel_spectra = self.to_db (mel_spectra)
+                mel_spectra = self.mel_transform(mag_spectra) # (batch, mics, #mel_weights, time)
+                mel_spectra = self.to_db (mel_spectra)
+            
             mel_spectra = mel_spectra.permute(0, 1, 3, 2) # (batch, mics, time, #mel_weights)
 
             feat = torch.cat((mel_spectra, cc), dim=1)

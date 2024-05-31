@@ -27,6 +27,17 @@ from cst_former.CST_former_model import CST_former
 from torchsummary import summary
 from warmup_scheduler import GradualWarmupScheduler
 
+def scramble(a, axis=-1):
+    """
+    Return an array with the values of `a` independently shuffled along the
+    given axis
+    """ 
+    b = a.swapaxes(axis, -1)
+    n = a.shape[axis]
+    idx = np.random.choice(n, n, replace=False)
+    b = b[..., idx]
+    return b.swapaxes(axis, -1)
+
 def deg2rad(deg):
     return deg * 2 * np.pi / 360
 
@@ -72,7 +83,7 @@ class TdoaLoss(nn.Module):
 
     def get_tdoa_target(self, target):
         B, T, _, F, C = target.shape
-        Tr = 5 # up to 5 events simultaneously #self.tracks
+        Tr = 5 # up to 5 events is possible
         tdoas = torch.zeros((B, T, Tr, self.ntdoas))
         tdoas[:] = torch.nan
         ignore_idx = int(-100)
@@ -80,14 +91,14 @@ class TdoaLoss(nn.Module):
         for b in range(B):
             for t in range(T):
                 tr_cnt = 0
-                any_active = False
+                n_active = 0
                 for tr in range(Tr):
                     for c in range(C):
-                        if tr_cnt >= self.tracks:
+                        if tr_cnt >= Tr:
                             break
                         active = target[b, t, tr, 0, c]
                         if active:
-                            any_active = True
+                            n_active +=1
                             doa = target[b, t, tr, 1:4, c].squeeze()
                             dist = target[b, t, tr, 4, c]
                             source_loc = doa * dist
@@ -101,12 +112,20 @@ class TdoaLoss(nn.Module):
                                     tdoas[b, t, tr_cnt, cnt] = tdoa+max_tau
                                     cnt +=1
                             tr_cnt +=1
-                if not any_active:
+                if n_active == 0:
                     tdoas[b, t, :, :] = ignore_idx
-                elif tr_cnt < Tr and any_active:
-                    tdoas[b, t, tr_cnt:, :] = ignore_idx# tdoas[b, t, tr_cnt-1, :]
+                elif tr_cnt < Tr and n_active > 0:
+                    tdoas[b, t, tr_cnt:, :] = tdoas[b, t, tr_cnt-1, :] # repeat the last event
 
-        return tdoas[:, :, :self.tracks]
+
+        #tdoas = scramble(tdoas, axis=2) # don't scramble, because we should have same permutations in t-direction
+        
+        #tdoas = np.swapaxes(tdoas, 0, 2)
+        #np.random.shuffle(tdoas) # shuffle along axis 0 (track axis)
+        #tdoas = np.swapaxes(tdoas, 0, 2)
+        tdoas = tdoas[:, :, :self.tracks]
+
+        return tdoas
     
     def forward(self, pred, target):
         self.mic_locs = self.mic_locs.to(target.device)
@@ -134,7 +153,8 @@ class TdoaLoss(nn.Module):
         else:
             acc = 0.
 
-        return loss.mean(), acc
+        valid_idx = torch.where(loss > 0.)[0]
+        return loss[valid_idx].mean(), acc
 
 def get_accdoa_labels(accdoa_in, nb_classes):
     x, y, z = accdoa_in[:, :, :nb_classes], accdoa_in[:, :, nb_classes:2*nb_classes], accdoa_in[:, :, 2*nb_classes:]
@@ -392,21 +412,25 @@ def train_epoch(data_generator, optimizer, model, criterion, params, device, cri
             loss1 = criterion(output, target)
             loss2, acc = criterion_tdoa(output_tdoa, target)
             if tdoa_loss_ma == -1:
-                tdoa_loss_ma = loss2.item()
-                tdoa_acc_ma = acc
+                if not torch.isnan(loss2):
+                    tdoa_loss_ma = loss2.item()
+                    tdoa_acc_ma = acc
             else:
-                tdoa_loss_ma = 0.95 * tdoa_loss_ma + 0.05 * loss2.item()
-                if acc > 0:
+                if not torch.isnan(loss2):
+                    tdoa_loss_ma = 0.95 * tdoa_loss_ma + 0.05 * loss2.item()
                     tdoa_acc_ma = 0.95 * tdoa_acc_ma + 0.05 * acc
             print("tdoa loss: " + str(tdoa_loss_ma)+ ", tdoa acc: " + str(tdoa_acc_ma), flush=True)
             loss = (1.0 - params['lambda']) * loss1 + params['lambda'] * loss2
         else:
             loss = criterion(output, target)
-        loss.backward()
-        optimizer.step()
         
-        train_loss += loss.item()
-        nb_train_batches += 1
+        if not torch.isnan(loss):
+            loss.backward()
+            optimizer.step()
+        
+            train_loss += loss.item()
+            nb_train_batches += 1
+
         if params['quick_test'] and nb_train_batches == 4:
             break
 
@@ -484,7 +508,7 @@ def main(argv):
         elif '2024' in params['dataset_dir']:
             test_splits = [[4]]
             val_splits = [[4]]
-            train_splits = [[1, 2, 3, 9]] # split 1 and 2 are simulated data, 3 and 4 are real recordings, 9 is extra simulated with rare classes
+            train_splits = [[1, 2, 3, 9]]# [[1, 2, 3, 9]] # split 1 and 2 are simulated data, 3 and 4 are real recordings, 9 is extra simulated with rare classes
 
         else:
             log_string('ERROR: Unknown dataset splits')
@@ -589,7 +613,7 @@ def main(argv):
         log_string('Dumping recording-wise val results in: {}'.format(dcase_output_val_folder))
 
         if params['predict_tdoa']:
-            criterion_tdoa = TdoaLoss(fs=params['fs'], max_tau=params['max_tau'], tracks=params['tracks'])
+            criterion_tdoa = TdoaLoss(fs=params['fs'], max_tau=params['max_tau'], tracks=params['tracks'])# max_events=params['max_events'])
         else:
             criterion_tdoa = None
         
