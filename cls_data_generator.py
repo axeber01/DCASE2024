@@ -21,9 +21,8 @@ def shuffle_lists(*ls):
   return zip(*l)
 
 class DataGenerator(object):
-    def __init__(
-            self, params, split=1, shuffle=True, per_file=False, is_eval=False
-    ):
+    def __init__(self, params, split=1, shuffle=True, per_file=False, is_eval=False):
+
         self._per_file = per_file
         self._is_eval = is_eval
         self._splits = np.array(split)
@@ -96,7 +95,7 @@ class DataGenerator(object):
     def get_data_sizes(self):
         feat_shape = (self._batch_size, self._nb_ch, self._feature_seq_len, self._nb_feat_dim)
         if self._is_eval:
-            label_shape = None
+            label_shape = (self._batch_size, self._label_seq_len, self._nb_classes*3*4)
         else:
             if self._multi_accdoa is True:
                 label_shape = (self._batch_size, self._label_seq_len, self._nb_classes*3*4)
@@ -116,7 +115,7 @@ class DataGenerator(object):
         max_frames, total_frames, temp_feat = -1, 0, []
         for subdir, _, files in os.walk(self._feat_dir):
             for filename in files:
-                if int(filename[4]) in self._splits:  # check which split the file belongs to
+                if self._is_eval:
                     if self._modality == 'audio' or (hasattr(self, '_vid_feat_dir') and os.path.exists(os.path.join(self._vid_feat_dir, filename))):   # some audio files do not have corresponding videos. Ignore them.
                         temp_feat = self.load_feat(os.path.join(subdir, filename))
                         total_frames += (temp_feat.shape[0] - (temp_feat.shape[0] % self._feature_seq_len))
@@ -130,6 +129,21 @@ class DataGenerator(object):
                             this_filename = filename
 
                         self._filenames_list.append(this_filename)
+                else:
+                    if int(filename[4]) in self._splits:  # check which split the file belongs to
+                        if self._modality == 'audio' or (hasattr(self, '_vid_feat_dir') and os.path.exists(os.path.join(self._vid_feat_dir, filename))):   # some audio files do not have corresponding videos. Ignore them.
+                            temp_feat = self.load_feat(os.path.join(subdir, filename))
+                            total_frames += (temp_feat.shape[0] - (temp_feat.shape[0] % self._feature_seq_len))
+                            if temp_feat.shape[0]>max_frames:
+                                max_frames = temp_feat.shape[0]
+
+                            if self.wav_chunks:
+                                this_filename = filename.replace('.wav', '') +'.npy'
+                                self.audio_names.append(os.path.join(subdir, filename))
+                            else:
+                                this_filename = filename
+
+                            self._filenames_list.append(this_filename)
 
         if len(temp_feat)!=0:
             self._nb_frames_file = max_frames if self._per_file else temp_feat.shape[0]

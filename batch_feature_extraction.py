@@ -15,18 +15,30 @@ def main(argv):
     params = parameters.get_params(task_id)
 
     # -------------- Extract features and labels for development set -----------------------------
-    dev_feat_cls = cls_feature_class.FeatureClass(params)
+    if params['mode'] == 'dev':
+        dev_feat_cls = cls_feature_class.FeatureClass(params, is_eval=False)
 
-    # # Extract features and normalize them
-    dev_feat_cls.extract_all_feature()
-    dev_feat_cls.preprocess_features()
+        # # Extract features and normalize them
+        dev_feat_cls.extract_all_feature()
+        dev_feat_cls.preprocess_features()
 
-    # # Extract labels
-    dev_feat_cls.extract_all_labels()
+        # # Extract labels
+        dev_feat_cls.extract_all_labels()
 
-    # # Extract visual features
-    if params['modality'] == 'audio_visual':
-        dev_feat_cls.extract_visual_features()
+        # # Extract visual features
+        if params['modality'] == 'audio_visual':
+            dev_feat_cls.extract_visual_features()
+
+    else:
+        dev_feat_cls = cls_feature_class.FeatureClass(params, is_eval=True)
+
+        # # Extract features and normalize them
+        dev_feat_cls.extract_all_feature()
+        dev_feat_cls.preprocess_features()
+
+        # # Extract visual features
+        if params['modality'] == 'audio_visual':
+            dev_feat_cls.extract_visual_features()
 
 
 if __name__ == "__main__":

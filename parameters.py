@@ -78,10 +78,11 @@ def get_params(argv='1'):
         predict_tdoa=False,
         warmup=5, #number of warmup epochs
         relative_dist = True,
+        no_dist = False,
 
         # METRIC
         average='macro',                 # Supports 'micro': sample-wise average and 'macro': class-wise average,
-        segment_based_metrics=False,     # If True, uses segment-based metrics, else uses event-based metrics
+        segment_based_metrics=False,     # If True, uses segment-based metrics, else uses frame-based metrics
         evaluate_distance=True,          # If True, computes distance errors and apply distance threshold to the detections
         lad_doa_thresh=20,               # DOA error threshold for computing the detection metrics
         lad_dist_thresh=float('inf'),    # Absolute distance error threshold for computing the detection metrics

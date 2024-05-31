@@ -206,16 +206,7 @@ class SeldModel(torch.nn.Module):
             x = self.fnn_list[fnn_cnt](x)
         doa = self.fnn_list[-1](x)
 
-        doa = doa.reshape(doa.size(0), doa.size(1), 3, 4, 13)
-        doa1 = doa[:, :, :, :3, :]
-        dist = doa[:, :, :, 3:, :]
-
-        doa1 = self.doa_act(doa1)
-        dist = self.dist_act(dist)
-        doa2 = torch.cat((doa1, dist), dim=3)
-
-        doa2 = doa2.reshape((doa.size(0), doa.size(1), -1))
-        return doa2
+        return doa
     
 class MySeldModel(torch.nn.Module):
     def __init__(self, in_feat_shape, out_shape, params, in_vid_feat_shape=None, n_channels=4, n_delays=None):
@@ -337,13 +328,16 @@ class MySeldModel(torch.nn.Module):
 
         doa = self.ff(x)
 
-        doa = doa.reshape(doa.size(0), doa.size(1), 3, 4, 13)
-        doa1 = doa[:, :, :, :3, :]
-        dist = doa[:, :, :, 3:, :]
+        return doa
+        # the below-commented code applies tanh for doa and relu for distance estimates respectively in multi-accdoa scenarios.
+        # they can be uncommented and used, but there is no significant changes in the results.
+        #doa = doa.reshape(doa.size(0), doa.size(1), 3, 4, 13)
+        #doa1 = doa[:, :, :, :3, :]
+        #dist = doa[:, :, :, 3:, :]
 
-        doa1 = self.doa_act(doa1)
-        dist = self.dist_act(dist)
-        doa2 = torch.cat((doa1, dist), dim=3)
+        #doa1 = self.doa_act(doa1)
+        #dist = self.dist_act(dist)
+        #doa2 = torch.cat((doa1, dist), dim=3)
 
-        doa2 = doa2.reshape((doa.size(0), doa.size(1), -1))
-        return doa2
+        #doa2 = doa2.reshape((doa.size(0), doa.size(1), -1))
+        #return doa2
