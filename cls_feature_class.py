@@ -584,8 +584,10 @@ class FeatureClass:
                 _output_dict[_frame_ind] = []
             if len(_words) == 4:  # frame, class idx,  polar coordinates(2) # no distance data, for example in eval pred
                 _output_dict[_frame_ind].append([int(_words[1]), 0, float(_words[2]), float(_words[3])])
-            if len(_words) == 5:  # frame, class idx, source_id, polar coordinates(2) # no distance data, for example in synthetic data fold 1 and 2
-                _output_dict[_frame_ind].append([int(_words[1]), int(_words[2]), float(_words[3]), float(_words[4])])
+            # if len(_words) == 5:  # frame, class idx, source_id, polar coordinates(2) # no distance data, for example in synthetic data fold 1 and 2
+            #     _output_dict[_frame_ind].append([int(_words[1]), int(_words[2]), float(_words[3]), float(_words[4])])
+            if len(_words) == 5:  # frame, class idx, polar coordinates(2), distance [cm] # as in polar predictions we have sved
+                _output_dict[_frame_ind].append([int(_words[1]), 0, float(_words[2]), float(_words[3]), float(_words[4])/100])
             if len(_words) == 6: # frame, class idx, source_id, polar coordinates(2), distance
                 _output_dict[_frame_ind].append([int(_words[1]), int(_words[2]), float(_words[3]), float(_words[4]), float(_words[5])/100 if cm2m else float(_words[5])])
             elif len(_words) == 7: # frame, class idx, source_id, cartesian coordinates(3), distance
@@ -609,6 +611,23 @@ class FeatureClass:
             for _value in _output_format_dict[_frame_ind]:
                 # Write Cartesian format output. Since baseline does not estimate track count and distance we use fixed values.
                 _fid.write('{},{},{},{},{},{},{}\n'.format(int(_frame_ind), int(_value[0]), 0, float(_value[1]), float(_value[2]), float(_value[3]), float(_value[4])))
+                # TODO: What if our system estimates track cound and distence (or only one of them)
+        _fid.close()
+
+    def write_output_format_file_polar(self, _output_format_file, _output_format_dict):
+        """
+        Writes DCASE output format csv file, given output format dictionary
+
+        :param _output_format_file:
+        :param _output_format_dict:
+        :return:
+        """
+        _fid = open(_output_format_file, 'w')
+        # _fid.write('{},{},{},{}\n'.format('frame number with 20ms hop (int)', 'class index (int)', 'azimuth angle (int)', 'elevation angle (int)'))
+        for _frame_ind in _output_format_dict.keys():
+            for _value in _output_format_dict[_frame_ind]:
+                # Write polar format output. Since baseline does not estimate track count and distance we use fixed values.
+                _fid.write('{},{},{},{},{}\n'.format(int(_frame_ind), int(_value[0]), int(_value[2]), int(_value[3]), int(_value[4]*100)))
                 # TODO: What if our system estimates track cound and distence (or only one of them)
         _fid.close()
 
@@ -673,6 +692,28 @@ class FeatureClass:
                 output_dict[frame_idx][class_idx][track_idx] = [az, el] + dist
 
         return output_dict
+    
+    # def organize_and_smooth_labels(self, _pred_dict, _max_frames):
+    #     '''
+    #         Collects class-wise sound event location information in every frame, similar to segment_labels but at frame level
+    #     :param _pred_dict: Dictionary containing frame-wise sound event time and location information. Output of SELD method
+    #     :param _max_frames: Total number of frames in the recording
+    #     :return: Dictionary containing class-wise sound event location information in each frame
+    #             dictionary_name[frame-index][class-index][track-index] = [azimuth, elevation, (distance)]
+    #     '''
+    #     filt_len = 10
+    #     nb_frames = _max_frames
+    #     output_dict = {x: {} for x in range(nb_frames)}
+    #     for frame_idx in range(0, _max_frames):
+    #         if frame_idx not in _pred_dict:
+    #             continue
+    #         for [class_idx, track_idx, az, el, *dist] in _pred_dict[frame_idx]:
+    #             if class_idx not in output_dict[frame_idx]:
+    #                 output_dict[frame_idx][class_idx] = {}
+    #             # assert track_idx not in output_dict[frame_idx][class_idx]  # I don't know why sometimes this happens... they seem to be repeated DOAs # TODO: Is this still happening?
+    #             output_dict[frame_idx][class_idx][track_idx] = [az, el] + dist
+
+    #     return output_dict
 
     def regression_label_format_to_output_format(self, _sed_labels, _doa_labels):
         """

@@ -125,6 +125,7 @@ class ComputeSELDResults(object):
                 # pred_labels[segment-index][class-index] := list(frame-cnt-within-segment, azimuth, elevation)
             else:
                 pred_labels = self._feat_cls.organize_labels(pred_dict, self._ref_labels[pred_file][1])
+                #print(pred_labels.values().shape)
                 # pred_labels[frame-index][class-index][track-index] := [azimuth, elevation]
             # Calculated scores
             eval.update_seld_scores(pred_labels, self._ref_labels[pred_file][0], eval_dist=self.evaluate_distance)
@@ -193,6 +194,24 @@ class ComputeSELDResults(object):
         else:
             return (ER, F, AngE, DistE, RelDistE, LR, seld_scr, classwise_results) if self.evaluate_distance \
                 else (ER, F, AngE, LR, seld_scr, classwise_results)
+        
+    def write_polar_predictions_from_cartesian(self, pred_files_path):
+
+        # collect predicted files info
+        pred_files_polar_path = pred_files_path + '_polar'
+        pred_files = os.listdir(pred_files_path)
+        
+        print("Converting cartesian predictions to polar")
+        print("Saving new predictions in " + pred_files_polar_path)
+        cls_feature_class.delete_and_create_folder(pred_files_polar_path)
+
+
+        for pred_cnt, pred_file in enumerate(pred_files):
+            # Load predicted output format file
+            pred_dict = self._feat_cls.load_output_format_file(os.path.join(pred_files_path, pred_file))
+            self._feat_cls.write_output_format_file_polar(os.path.join(pred_files_polar_path, pred_file), pred_dict)
+
+        print("Done converting to polar")
 
     def get_consolidated_SELD_results(self, pred_files_path, score_type_list=['all', 'room']):
         '''
