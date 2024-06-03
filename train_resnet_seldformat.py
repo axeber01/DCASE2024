@@ -12,7 +12,6 @@ import cls_feature_class
 from train_seldnet import test_epoch
 from time import gmtime, strftime
 from cls_compute_seld_results import ComputeSELDResults
-from coordconv import CoordConv2d
 
 
 class CoordConv(nn.Module):
@@ -172,6 +171,8 @@ def main(argv):
 
             val_ER, val_F, val_LE, val_dist_err, val_rel_dist_err, val_LR, val_seld_scr, classwise_val_scr = score_obj.get_SELD_Results(
                 dcase_output_val_folder)
+
+            print("Val loss: ", val_loss, flush=True)
 
             # Save model if F-score is good
             if val_F >= best_F:
