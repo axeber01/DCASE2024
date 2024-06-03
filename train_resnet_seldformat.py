@@ -12,6 +12,41 @@ import cls_feature_class
 from train_seldnet import test_epoch
 from time import gmtime, strftime
 from cls_compute_seld_results import ComputeSELDResults
+from coordconv import CoordConv2d
+
+
+class CoordConv(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, bias=True):
+        super(CoordConv, self).__init__()
+        self.addcoords = AddCoords()
+        self.conv = nn.Conv2d(in_channels + 2, out_channels, kernel_size, stride, padding, bias=bias)
+
+    def forward(self, x):
+        x = self.addcoords(x)
+        x = self.conv(x)
+        return x
+
+
+class AddCoords(nn.Module):
+    def __init__(self):
+        super(AddCoords, self).__init__()
+
+    def forward(self, x):
+        batch_size, _, height, width = x.size()
+        xx_channel = torch.arange(width).repeat(1, height, 1)
+        yy_channel = torch.arange(height).repeat(1, width, 1).transpose(1, 2)
+
+        xx_channel = xx_channel.float() / (width - 1)
+        yy_channel = yy_channel.float() / (height - 1)
+
+        xx_channel = xx_channel * 2 - 1
+        yy_channel = yy_channel * 2 - 1
+
+        xx_channel = xx_channel.repeat(batch_size, 1, 1, 1).to(x.device)
+        yy_channel = yy_channel.repeat(batch_size, 1, 1, 1).to(x.device)
+
+        x = torch.cat([x, xx_channel, yy_channel], dim=1)
+        return x
 
 
 def main(argv):
@@ -23,19 +58,30 @@ def main(argv):
     # Load the ResNet model
     resnet = torchvision.models.resnet50(weights='ResNet50_Weights.DEFAULT')
 
+    # Replace the first conv layer with CoordConv layer
+    in_channels = resnet.conv1.in_channels
+    out_channels = resnet.conv1.out_channels
+    kernel_size = resnet.conv1.kernel_size
+    stride = resnet.conv1.stride
+    padding = resnet.conv1.padding
+    bias = resnet.conv1.bias is not None
+
+    resnet.conv1 = CoordConv(in_channels, out_channels, kernel_size, stride=stride, padding=padding, bias=bias)
+
     model = resnet
     model = torch.nn.Sequential(*(list(model.children())[:-2]))
+
     # Define the new convolutional layers
     conv_layer_1 = nn.Conv2d(2048, 1024, kernel_size=1)
     conv_layer_2 = nn.Conv2d(1024, 156, kernel_size=1)
-    conv_layer_3 = nn.Conv2d(128, 1, kernel_size=1)
+    conv_layer_3 = nn.Conv2d(156, 1, kernel_size=1)
     conv_layer_up = nn.Conv2d(1, 156, kernel_size=1)
 
     # Concatenate the ResNet model with the new convolutional layers
-    model = torch.nn.Sequential(model, conv_layer_1, conv_layer_2)
+    model = torch.nn.Sequential(model, conv_layer_1, conv_layer_2, conv_layer_3, conv_layer_up)
 
-    conv_layer = nn.Conv2d(2048, 1024, kernel_size=1)
-    conv_layer_2 = nn.Conv2d(1024, 156, kernel_size=1)
+    #conv_layer = nn.Conv2d(2048, 1024, kernel_size=1)
+    #conv_layer_2 = nn.Conv2d(1024, 156, kernel_size=1)
     #model = torch.nn.Sequential(model, conv_layer, conv_layer_2)
 
     # Freeze all layers except the last two
@@ -46,6 +92,10 @@ def main(argv):
     for param in conv_layer_1.parameters():
         param.requires_grad = True
     for param in conv_layer_2.parameters():
+        param.requires_grad = True
+    for param in conv_layer_3.parameters():
+        param.requires_grad = True
+    for param in conv_layer_up.parameters():
         param.requires_grad = True
 
     torch.cuda.empty_cache()
@@ -76,7 +126,7 @@ def main(argv):
     optimizer = optim.Adam(model.parameters(), lr=params['lr'])
     criterion = seldnet_model.MSELoss_ADPIT(relative_dist=True, visual_loss=True)
 
-    unique_name = 'ResNet_train_fronzen'
+    unique_name = 'ResNet_train_frozen_down_to_1'
     # Dump results in DCASE output format for calculating final scores
     dcase_output_val_folder = os.path.join(params['dcase_output_dir'],
                                             '{}_{}_val'.format(unique_name, strftime("%Y%m%d%H%M%S", gmtime())))
