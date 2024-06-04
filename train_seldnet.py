@@ -240,50 +240,14 @@ def eval_epoch(data_generator, model, dcase_output_folder, params, device):
     file_cnt = 0
     with torch.no_grad():
         for values in data_generator.generate():
-            if len(values) == 2:
-                data, target = values
-                data, target = torch.tensor(data).to(device).float(), torch.tensor(target).to(device).float()
-                bs = params['batch_size']
-                if data.shape[0] > bs and params['raw_chunks']:
-                    max_cnt = data.shape[0] // bs
-                    output = []
-                    for cnt in range(0, max_cnt):
-                        this_data = data[cnt*bs:(cnt+1)*bs]
-                        this_output = model(this_data)
-                        output.append(this_output)
-                    
-                    this_data = data[(cnt+1)*bs:]
-                    this_output = model(this_data)
-                    output.append(this_output)
-                    
-                    output = torch.cat(output, dim=0)
-
-                else:
-                    output = model(data)
-
-            elif len(values) == 3:
-                data, vid_feat, target = values
-                data, vid_feat, target = torch.tensor(data).to(device).float(), torch.tensor(vid_feat).to(device).float(), torch.tensor(target).to(device).float()
-                bs = params['batch_size']
-                if data.shape[0] > bs and params['raw_chunks']:
-                    max_cnt = data.shape[0] // bs
-                    output = []
-                    output_vid = []
-                    for cnt in range(0, max_cnt):
-                        this_data = data[cnt*bs:(cnt+1)*bs]
-                        this_vid_data = vid_feat[cnt*bs:(cnt+1)*bs]
-                        this_output = model(this_data, this_vid_data)
-                        output.append(this_output)
-
-                    this_data = data[(cnt+1)*bs:]
-                    this_vid_data = vid_feat[(cnt+1)*bs:]
-                    this_output = model(this_data, this_vid_data)
-                    output.append(this_output)
-                    output = torch.cat(output, dim=0)
-
-                else:
-
-                    output = model(data, vid_feat)
+            if len(values) == 2: # audio visual
+                data, vid_feat = values
+                data, vid_feat = torch.tensor(data).to(device).float(), torch.tensor(vid_feat).to(device).float()
+                output = model(data, vid_feat)
+            else:
+                data = values
+                data = torch.tensor(data).to(device).float()
+                output = model(data) 
 
             if params['multi_accdoa'] is True:
                 sed_pred0, doa_pred0, dist_pred0, sed_pred1, doa_pred1, dist_pred1, sed_pred2, doa_pred2, dist_pred2 = get_multi_accdoa_labels(output.detach().cpu().numpy(), params['unique_classes'])
@@ -702,6 +666,9 @@ def main(argv):
             LOG_FOUT.flush()
             print(out_str, flush=True)
 
+        for key, value in params.items():
+            log_string("\t{}: {}".format(key, value))
+
         if '2020' in params['dataset_dir']:
             test_splits = [1]
             val_splits = [2]
@@ -753,11 +720,13 @@ def main(argv):
 
             # Load train and validation data
             log_string('Loading training dataset:')
+            log_string(str(train_splits[split_cnt]))
             data_gen_train = cls_data_generator.DataGenerator(
                 params=params, split=train_splits[split_cnt]
             )
 
             log_string('Loading validation dataset:')
+            log_string(str(val_splits[split_cnt]))
             data_gen_val= cls_data_generator.DataGenerator(
                 params=params, split=val_splits[split_cnt], shuffle=False, per_file=True
             )
@@ -951,6 +920,8 @@ def main(argv):
                         '[{:0.2f}, {:0.2f}]'.format(classwise_test_scr[1][6][cls_cnt][0],
                                                     classwise_test_scr[1][6][cls_cnt][1]) if use_jackknife else ''))
 
+        LOG_FOUT.close()
+
     if params['mode'] == 'eval':
 
         print('Loading evaluation dataset:')
@@ -959,18 +930,8 @@ def main(argv):
 
         model, data_in, vid_data_in, data_out = get_model_and_sizes(params, data_gen_eval, device)
 
-        # ---------------------------------------------------------------------
-        # Evaluate on unseen test data
-        # ---------------------------------------------------------------------
-        # don't load best model, this is cherry picking
-        log_string('Not loading best model weights, using final model weights instead')
-        log_string('Load final model weights')
+        print('Load final model weights from:' + params['pretrained_model_weights'])
         model.load_state_dict(torch.load(params['pretrained_model_weights'], map_location='cpu'))
-
-        log_string('Loading unseen test dataset:')
-        data_gen_test = cls_data_generator.DataGenerator(
-            params=params, split=test_splits[split_cnt], shuffle=False, per_file=True,
-        )
 
         # Dump results in DCASE output format for calculating final scores
         loc_output = 'multiaccdoa' if params['multi_accdoa'] else 'accdoa'
@@ -982,7 +943,6 @@ def main(argv):
         eval_epoch(data_gen_eval, model, dcase_output_test_folder, params, device)
 
 
-    LOG_FOUT.close()
                     
 if __name__ == "__main__":
     try:
