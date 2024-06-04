@@ -202,7 +202,7 @@ class DataGenerator(object):
                 # load feat and label to circular buffer. Always maintain atleast one batch worth feat and label in the
                 # circular buffer. If not keep refilling it.
                 while (len(self._circ_buf_feat) < self._feature_batch_seq_len or (hasattr(self, '_circ_buf_vid_feat') and hasattr(self, '_vid_feature_batch_seq_len') and len(self._circ_buf_vid_feat) < self._vid_feature_batch_seq_len)):
-                    if self.wav._chunks:
+                    if self.wav_chunks:
                         feat_path = self.audio_names[file_cnt]
                     else:
                         feat_path = os.path.join(self._feat_dir, self._filenames_list[file_cnt])

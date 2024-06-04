@@ -239,30 +239,15 @@ def eval_epoch(data_generator, model, dcase_output_folder, params, device):
     file_cnt = 0
     with torch.no_grad():
         for values in data_generator.generate():
-            if len(values) == 2:
-                data, target = values
-                data, target = torch.tensor(data).to(device).float(), torch.tensor(target).to(device).float()
-                bs = params['batch_size']
-                if data.shape[0] > bs and params['raw_chunks']:
-                    max_cnt = data.shape[0] // bs
-                    output = []
-                    for cnt in range(0, max_cnt):
-                        this_data = data[cnt*bs:(cnt+1)*bs]
-                        this_output = model(this_data)
-                        output.append(this_output)
-                    
-                    this_data = data[(cnt+1)*bs:]
-                    this_output = model(this_data)
-                    output.append(this_output)
-                    
-                    output = torch.cat(output, dim=0)
-
-                else:
-                    output = model(data)
-            elif len(values) == 3:
-                data, vid_feat, target = values
-                data, vid_feat, target = torch.tensor(data).to(device).float(), torch.tensor(vid_feat).to(device).float(), torch.tensor(target).to(device).float()
+            
+            if len(values) == 2: # audio visual
+                data, vid_feat = values
+                data, vid_feat = torch.tensor(data).to(device).float(), torch.tensor(vid_feat).to(device).float()
                 output = model(data, vid_feat)
+            else:
+                data = values
+                data = torch.tensor(data).to(device).float()
+                output = model(data) 
 
             if params['multi_accdoa'] is True:
                 sed_pred0, doa_pred0, dist_pred0, sed_pred1, doa_pred1, dist_pred1, sed_pred2, doa_pred2, dist_pred2 = get_multi_accdoa_labels(output.detach().cpu().numpy(), params['unique_classes'])
@@ -873,6 +858,8 @@ def main(argv):
                         '[{:0.2f}, {:0.2f}]'.format(classwise_test_scr[1][6][cls_cnt][0],
                                                     classwise_test_scr[1][6][cls_cnt][1]) if use_jackknife else ''))
 
+        LOG_FOUT.close()
+
     if params['mode'] == 'eval':
 
         print('Loading evaluation dataset:')
@@ -894,9 +881,6 @@ def main(argv):
         eval_epoch(data_gen_eval, model, dcase_output_test_folder, params, device)
 
 
-
-
-    LOG_FOUT.close()
                     
 if __name__ == "__main__":
     try:
