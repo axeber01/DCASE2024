@@ -15,7 +15,6 @@ def get_params(argv='1'):
         # pretrained_model_weights='6_1_dev_split0_multiaccdoa_mic_gcc_model.h5',
 
         # INPUT PATH
-<<<<<<< HEAD
         dataset_dir='./data_2024/',  # Base folder containing the foa/mic and metadata folders
         #dataset_dir='./sim_20_rooms/',
         #dataset_dir='./data_2024_soundq_aug/',
@@ -23,15 +22,7 @@ def get_params(argv='1'):
         # OUTPUT PATHS
         feat_label_dir='./data_2024/seld_feat_label/',  # Directory to dump extracted features and labels
         #feat_label_dir='./sim_20_rooms/seld_feat_label/',
-        #feat_label_dir='./data_2024_soundq_aug/seld_feat_label/',
-=======
-        dataset_dir='DCASE2024_SELD_dataset/',  # Base folder containing the foa/mic and metadata folders
-        # dataset_dir='../DCASE2024_SELD_dataset/',
-
-        # OUTPUT PATHS
-        feat_label_dir='DCASE2024_SELD_dataset/feat_label_hnet/',  # Directory to dump extracted features and labels
-        # feat_label_dir='../DCASE2024_SELD_dataset/seld_feat_label/',
->>>>>>> origin/visual
+        #feat_label_dir='./data_2024_soundq_aug/seld_feat_label/'
 
         model_dir='models',  # Dumps the trained models and training curves in this folder
         dcase_output_dir='results',  # recording-wise results are dumped in this path.
@@ -55,27 +46,18 @@ def get_params(argv='1'):
         fmax_spectra_salsalite=9000,
 
         # MODEL TYPE
-<<<<<<< HEAD
         model = 'seldnet',
-        modality='audio',  # 'audio' or 'audio_visual'
-=======
-        modality='audio_visual',  # 'audio' or 'audio_visual'
->>>>>>> origin/visual
+        modality='audio',  # 'audio' or 'audio_visual
         multi_accdoa=False,  # False - Single-ACCDOA or True - Multi-ACCDOA
         thresh_unify=15,    # Required for Multi-ACCDOA only. Threshold of unification for inference in degrees.
 
-        train_on_video=True,  # My added parameter!
+        train_on_video=False,  # My added parameter!
         scale_down=True,
 
         # DNN MODEL PARAMETERS
-<<<<<<< HEAD
         label_sequence_length=50,    # Feature sequence length
         batch_size=64,              # Batch size
         eval_batch_size=64,
-=======
-        label_sequence_length=1, #5, # 25, #50,    # Feature sequence length
-        batch_size=80, # 20, #12, #4, 128              # Batch size
->>>>>>> origin/visual
         dropout_rate=0.05,           # Dropout rate, constant for all layers
         nb_cnn2d_filt=64,           # Number of CNN nodes, constant for each layer
         f_pool_size=[4, 4, 2],      # CNN frequency pooling, length of list = number of CNN layers, list value = pooling per layer
@@ -90,7 +72,6 @@ def get_params(argv='1'):
         nb_fnn_layers=1,
         fnn_size=128,  # FNN contents, length of list = number of layers, list value = number of nodes
 
-<<<<<<< HEAD
         nb_epochs=300,  # Train for maximum epochs
         eval_freq=25, # evaluate every x epochs
         lr=1e-3,
@@ -102,10 +83,6 @@ def get_params(argv='1'):
         warmup=5, #number of warmup epochs
         relative_dist = True,
         no_dist = False,
-=======
-        nb_epochs=200, #100, #250,  # Train for maximum epochs
-        lr=1e-5, #1e-4, #1e-3,
->>>>>>> origin/visual
 
         # METRIC
         average='macro',                 # Supports 'micro': sample-wise average and 'macro': class-wise average,
@@ -125,6 +102,7 @@ def get_params(argv='1'):
         CMT_split = False,          # Apply LPU & IRFNN on S, T attention layers independently
         use_ngcc = False,
         use_mfcc = False,
+        freeze_backbone = False,
         
     )
 
@@ -338,6 +316,45 @@ def get_params(argv='1'):
         params['fixed_tdoa'] = True
         params['augment'] = False
 
+    elif argv == '444': #CST former with NGCC-PHAT, finetune with video
+        print("[CST-former: Unfolded Local Embedding] FOA + Multi-ACCDOA + CST Unfold + CMT (S dim : 16)\n")
+        params['freeze_backbone'] = True
+        params['modality']='audio_visual'
+        params['model'] = 'cstformer'
+        params['use_ngcc'] = True
+        params['quick_test'] = False
+        params['multi_accdoa'] = True
+        params['t_pooling_loc'] = 'front'
+
+        params['FreqAtten'] = True
+        params['ChAtten_ULE'] = True
+        params['CMT_block'] = True
+
+        params["f_pool_size"] = [1,2,2]
+        params['t_pool_size'] = [1,1, params['feature_label_resolution']]
+        params['batch_size'] = 64
+        params['nb_fnn_layers'] = 1 
+        params['fnn_size'] = 256
+
+        params['finetune_mode'] = True#True
+        params['raw_chunks'] = True
+        params['pretrained_model_weights'] = 'models_audio/333_cst-sim-aug-rare-ngcc-pretrained-mel-300-relative_dev_split0_multiaccdoa_mic_gcc_model_final.h5'
+        params['dataset'] = 'mic'
+        params['n_mics'] = 4
+        params['ngcc_channels'] = 32
+        params['ngcc_out_channels'] = 16
+        params['saved_chunks'] = True
+        params['use_mel'] = True
+        params['use_mfcc'] = False
+        params['nb_epochs'] = 300
+        params['eval_freq'] = 5
+
+        params['predict_tdoa'] = False
+        params['lambda'] = 0.0 # set to 1.0 to only train tdoa, and 0.0 to only train SELD
+        params['max_tau'] = 6
+        params['tracks'] = 3
+        params['fixed_tdoa'] = True
+        params['augment'] = False
 
     elif argv == '7':
         print("MIC + SALSA + multi ACCDOA\n")

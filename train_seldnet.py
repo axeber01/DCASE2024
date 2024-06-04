@@ -260,10 +260,30 @@ def eval_epoch(data_generator, model, dcase_output_folder, params, device):
 
                 else:
                     output = model(data)
+
             elif len(values) == 3:
                 data, vid_feat, target = values
                 data, vid_feat, target = torch.tensor(data).to(device).float(), torch.tensor(vid_feat).to(device).float(), torch.tensor(target).to(device).float()
-                output = model(data, vid_feat)
+                bs = params['batch_size']
+                if data.shape[0] > bs and params['raw_chunks']:
+                    max_cnt = data.shape[0] // bs
+                    output = []
+                    output_vid = []
+                    for cnt in range(0, max_cnt):
+                        this_data = data[cnt*bs:(cnt+1)*bs]
+                        this_vid_data = vid_feat[cnt*bs:(cnt+1)*bs]
+                        this_output = model(this_data, this_vid_data)
+                        output.append(this_output)
+
+                    this_data = data[(cnt+1)*bs:]
+                    this_vid_data = vid_feat[(cnt+1)*bs:]
+                    this_output = model(this_data, this_vid_data)
+                    output.append(this_output)
+                    output = torch.cat(output, dim=0)
+
+                else:
+
+                    output = model(data, vid_feat)
 
             if params['multi_accdoa'] is True:
                 sed_pred0, doa_pred0, dist_pred0, sed_pred1, doa_pred1, dist_pred1, sed_pred2, doa_pred2, dist_pred2 = get_multi_accdoa_labels(output.detach().cpu().numpy(), params['unique_classes'])
@@ -393,16 +413,27 @@ def test_epoch(data_generator, model, criterion, dcase_output_folder, params, de
             elif len(values) == 3:
                 data, vid_feat, target = values
                 data, vid_feat, target = torch.tensor(data).to(device).float(), torch.tensor(vid_feat).to(device).float(), torch.tensor(target).to(device).float()
-                output = model(data, vid_feat)
-<<<<<<< HEAD
+                bs = params['batch_size']
+                if data.shape[0] > bs and params['raw_chunks']:
+                    max_cnt = data.shape[0] // bs
+                    output = []
+                    output_vid = []
+                    for cnt in range(0, max_cnt):
+                        this_data = data[cnt*bs:(cnt+1)*bs]
+                        this_vid_data = vid_feat[cnt*bs:(cnt+1)*bs]
+                        this_output = model(this_data, this_vid_data)
+                        output.append(this_output)
 
-            if criterion_tdoa is not None:
-                loss1 = criterion(output, target)
-                loss2, acc = criterion_tdoa(output_tdoa, target)
-                loss = (1.0 - params['lambda']) * loss1 + params['lambda'] * loss2
-            else:
-                loss = criterion(output, target)
-=======
+                    this_data = data[(cnt+1)*bs:]
+                    this_vid_data = vid_feat[(cnt+1)*bs:]
+                    this_output = model(this_data, this_vid_data)
+                    output.append(this_output)
+                    output = torch.cat(output, dim=0)
+
+                else:
+
+                    output = model(data, vid_feat)
+
             elif len(values) == 4:
                 _, _, frame, target = values
                 frame, target = torch.tensor(frame).to(device).float(), torch.tensor(target).to(device).float()
@@ -430,8 +461,15 @@ def test_epoch(data_generator, model, criterion, dcase_output_folder, params, de
 
                 output = torch.cat(output, dim=0)
                 output = output.view(true_bs, params['label_sequence_length'], -1)
-            loss = criterion(output, target)
->>>>>>> origin/visual
+            
+            if criterion_tdoa is not None:
+                loss1 = criterion(output, target)
+                loss2, acc = criterion_tdoa(output_tdoa, target)
+                loss = (1.0 - params['lambda']) * loss1 + params['lambda'] * loss2
+            else:
+                loss = criterion(output, target)
+
+
 
             if params['multi_accdoa'] is True:
                 sed_pred0, doa_pred0, dist_pred0, sed_pred1, doa_pred1, dist_pred1, sed_pred2, doa_pred2, dist_pred2 = get_multi_accdoa_labels(output.detach().cpu().numpy(), params['unique_classes'])
@@ -538,6 +576,7 @@ def train_epoch(data_generator, optimizer, model, criterion, params, device, cri
     tdoa_acc_ma = -1
     for values in data_generator.generate():
         # load one batch of data
+        #print(len(values))
         if len(values) == 2:
             data, target = values
             data, target = torch.tensor(data).to(device).float(), torch.tensor(target).to(device).float()
@@ -558,27 +597,28 @@ def train_epoch(data_generator, optimizer, model, criterion, params, device, cri
                 output = model(data)
         elif len(values) == 3:
             data, vid_feat, target = values
-            # print("data, vid_feat, target: ", data.shape, vid_feat.shape, target.shape)
+            #print("data, vid_feat, target: ", data.shape, vid_feat.shape, target.shape)
             data, vid_feat, target = torch.tensor(data).to(device).float(), torch.tensor(vid_feat).to(device).float(), torch.tensor(target).to(device).float()
             optimizer.zero_grad()
             output = model(data, vid_feat)
         elif len(values) == 4:
-            data, vid_feat, vid_frame, target = values
+            print("error")
+            #data, vid_feat, vid_frame, target = values
             # print("data, vid_feat, vid_frame, target: ", data.shape, vid_feat.shape, vid_frame.shape, target.shape)
-            data, vid_feat, target = torch.tensor(data).to(device).float(), torch.tensor(vid_feat).to(device).float(), torch.tensor(target).to(device).float()
+            #data, vid_feat, target = torch.tensor(data).to(device).float(), torch.tensor(vid_feat).to(device).float(), torch.tensor(target).to(device).float()
             
-            if params['specaugment'] and not params['raw_chunks']:
-                spec = data[:, :params['n_mics']].permute(0, 1, 3, 2)
-                data[:, :params['n_mics']] = train_transform(spec).permute(0, 1, 3, 2)
+            #if params['specaugment'] and not params['raw_chunks']:
+            #    spec = data[:, :params['n_mics']].permute(0, 1, 3, 2)
+            #    data[:, :params['n_mics']] = train_transform(spec).permute(0, 1, 3, 2)
 
-            if params['augment'] and params['raw_chunks']:
-                B, C, T, L = data.shape
-                data = data.permute(0, 2, 1, 3).reshape(-1, C, L)
-                data = augment(data)
-                data = data.reshape(B, T, C, L).permute(0, 2, 1, 3)
+            #if params['augment'] and params['raw_chunks']:
+            #    B, C, T, L = data.shape
+            #    data = data.permute(0, 2, 1, 3).reshape(-1, C, L)
+            #    data = augment(data)
+            #    data = data.reshape(B, T, C, L).permute(0, 2, 1, 3)
 
-            optimizer.zero_grad()
-            output = model(data, vid_feat)
+            #optimizer.zero_grad()
+            #output = model(data, vid_feat)
                     
         if criterion_tdoa is not None:
             loss1 = criterion(output, target)
@@ -600,16 +640,9 @@ def train_epoch(data_generator, optimizer, model, criterion, params, device, cri
             loss.backward()
             optimizer.step()
         
-<<<<<<< HEAD
             train_loss += loss.item()
             nb_train_batches += 1
-
-=======
-        train_loss += loss.item()
-        nb_train_batches += 1
-        if nb_train_batches % 200 == 0:
-            print("Iteration: ", nb_train_batches, "Training loss: ", train_loss/nb_train_batches)
->>>>>>> origin/visual
+        
         if params['quick_test'] and nb_train_batches == 4:
             break
 
@@ -690,7 +723,7 @@ def main(argv):
         elif '2024' in params['dataset_dir']:
             test_splits = [[4]]
             val_splits = [[4]]
-            train_splits = [[1, 2, 3, 9]]# [[1, 2, 3, 9]] # split 1 and 2 are simulated data, 3 and 4 are real recordings, 9 is extra simulated with rare classes
+            train_splits = [[3]]# [[1, 2, 3, 9]]# [[1, 2, 3, 9]] # split 1 and 2 are simulated data, 3 and 4 are real recordings, 9 is extra simulated with rare classes
 
         else:
             log_string('ERROR: Unknown dataset splits')
@@ -750,7 +783,12 @@ def main(argv):
                 params['dropout_rate'], params['nb_cnn2d_filt'], params['f_pool_size'], params['t_pool_size'], params['rnn_size'], params['nb_self_attn_layers'],
                 params['fnn_size']))
             if not params['predict_tdoa']:
-                summary(model, data_in[1:])
+                if params['modality'] == 'audio_visual':
+                    print(vid_data_in)
+                    #summary(model, [data_in[1:], vid_data_in[1:]])
+                    print(model)
+                else:
+                    summary(model, data_in[1:])
 
             # Dump results in DCASE output format for calculating final scores
             dcase_output_val_folder = os.path.join(params['dcase_output_dir'], '{}_{}_val'.format(unique_name, strftime("%Y%m%d%H%M%S", gmtime())))
@@ -860,7 +898,6 @@ def main(argv):
                 if patience_cnt > params['patience']:
                     break
 
-<<<<<<< HEAD
             # ---------------------------------------------------------------------
             # Evaluate on unseen test data
             # ---------------------------------------------------------------------
@@ -873,52 +910,17 @@ def main(argv):
             data_gen_test = cls_data_generator.DataGenerator(
                 params=params, split=test_splits[split_cnt], shuffle=False, per_file=True,
             )
-=======
-        # Load train and validation data
-        print('Loading training dataset:')
-        print("here is split_cnt: ", split_cnt)
-        data_gen_train = cls_data_generator.DataGenerator(
-            params=params, split=train_splits[split_cnt]
-        )
->>>>>>> origin/visual
 
             # Dump results in DCASE output format for calculating final scores
             dcase_output_test_folder = os.path.join(params['dcase_output_dir'], '{}_{}_test'.format(unique_name, strftime("%Y%m%d%H%M%S", gmtime())))
             cls_feature_class.delete_and_create_folder(dcase_output_test_folder)
             log_string('Dumping recording-wise test results in: {}'.format(dcase_output_test_folder))
 
-<<<<<<< HEAD
-=======
-        # Collect i/o data size and load model configuration
-        if params['modality'] == 'audio_visual':
-            data_in, vid_data_in, data_out = data_gen_train.get_data_sizes()
-            print("data_in, vid_data_in, data_out: ", data_in, vid_data_in, data_out)
-            model = seldnet_model.SeldModel(data_in, data_out, params, vid_data_in).to(device)
-        else:
-            data_in, data_out = data_gen_train.get_data_sizes()
-            model = seldnet_model.SeldModel(data_in, data_out, params).to(device)
-
-        if params['finetune_mode']:
-            print('Running in finetuning mode. Initializing the model to the weights - {}'.format(params['pretrained_model_weights']))
-            state_dict = torch.load(params['pretrained_model_weights'], map_location='cpu')
-            if params['modality'] == 'audio_visual':
-                state_dict = {k: v for k, v in state_dict.items() if 'fnn' not in k}
-            model.load_state_dict(state_dict, strict=False)
-
-        print('---------------- SELD-net -------------------')
-        print('FEATURES:\n\tdata_in: {}\n\tdata_out: {}\n'.format(data_in, data_out))
-        print('MODEL:\n\tdropout_rate: {}\n\tCNN: nb_cnn_filt: {}, f_pool_size{}, t_pool_size{}\n, rnn_size: {}\n, nb_attention_blocks: {}\n, fnn_size: {}\n'.format(
-            params['dropout_rate'], params['nb_cnn2d_filt'], params['f_pool_size'], params['t_pool_size'], params['rnn_size'], params['nb_self_attn_layers'],
-            params['fnn_size']))
-        print(model)
->>>>>>> origin/visual
-
             test_loss = test_epoch(data_gen_test, model, criterion, dcase_output_test_folder, params, device, criterion_tdoa)
 
             use_jackknife=True
             test_ER, test_F, test_LE, test_dist_err, test_rel_dist_err, test_LR, test_seld_scr, classwise_test_scr = score_obj.get_SELD_Results(dcase_output_test_folder, is_jackknife=use_jackknife )
 
-<<<<<<< HEAD
             log_string('SELD score (early stopping metric): {:0.2f} {}'.format(test_seld_scr[0] if use_jackknife else test_seld_scr, '[{:0.2f}, {:0.2f}]'.format(test_seld_scr[1][0], test_seld_scr[1][1]) if use_jackknife else ''))
             log_string('SED metrics: F-score: {:0.1f} {}'.format(100* test_F[0]  if use_jackknife else 100* test_F, '[{:0.2f}, {:0.2f}]'.format(100* test_F[1][0], 100* test_F[1][1]) if use_jackknife else ''))
             log_string('DOA metrics: Angular error: {:0.1f} {}'.format(test_LE[0] if use_jackknife else test_LE, '[{:0.2f} , {:0.2f}]'.format(test_LE[1][0], test_LE[1][1]) if use_jackknife else ''))
@@ -950,38 +952,6 @@ def main(argv):
                                                     classwise_test_scr[1][6][cls_cnt][1]) if use_jackknife else ''))
 
     if params['mode'] == 'eval':
-=======
-            start_time = time.time()
-            if epoch_cnt % 10 == 0:
-                val_loss = test_epoch(data_gen_val, model, criterion, dcase_output_val_folder, params, device)
-                # Calculate the DCASE 2021 metrics - Location-aware detection and Class-aware localization scores
-
-                val_ER, val_F, val_LE, val_dist_err, val_rel_dist_err, val_LR, val_seld_scr, classwise_val_scr = score_obj.get_SELD_Results(dcase_output_val_folder)
-
-                val_time = time.time() - start_time
-
-                # Save model if F-score is good
-                if val_F >= best_F:
-                    best_val_epoch, best_ER, best_F, best_LE, best_LR, best_seld_scr, best_dist_err = epoch_cnt, val_ER, val_F, val_LE, val_LR, val_seld_scr, val_dist_err
-                    best_rel_dist_err = val_rel_dist_err
-                    torch.save(model.state_dict(), model_name)
-                    patience_cnt = 0
-                else:
-                    patience_cnt += 1
-
-            # Print stats
-            print(
-                'epoch: {}, time: {:0.2f}/{:0.2f}, '
-                'train_loss: {:0.4f}, val_loss: {:0.4f}, '
-                'F/AE/Dist_err/Rel_dist_err/SELD: {}, '
-                'best_val_epoch: {} {}'.format(
-                    epoch_cnt, train_time, val_time,
-                    train_loss, val_loss,
-                    '{:0.2f}/{:0.2f}/{:0.2f}/{:0.2f}/{:0.2f}'.format(val_F, val_LE, val_dist_err, val_rel_dist_err, val_seld_scr),
-                    best_val_epoch,
-                    '({:0.2f}/{:0.2f}/{:0.2f}/{:0.2f}/{:0.2f})'.format( best_F, best_LE, best_dist_err, best_rel_dist_err, best_seld_scr))
-            )
->>>>>>> origin/visual
 
         print('Loading evaluation dataset:')
         data_gen_eval = cls_data_generator.DataGenerator(

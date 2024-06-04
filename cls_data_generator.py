@@ -116,7 +116,7 @@ class DataGenerator(object):
                 label_shape = (self._batch_size, self._label_seq_len, self._nb_classes*4)
 
         if self._modality == 'audio_visual':
-            vid_feat_shape = (self._batch_size, self._vid_feature_seq_len, 7, 7)
+            vid_feat_shape = (self._batch_size, self._vid_feature_seq_len, 1024, 7, 7)
             return feat_shape, vid_feat_shape, label_shape
         return feat_shape, label_shape
 
@@ -340,7 +340,7 @@ class DataGenerator(object):
                             vid_feat_extra_frames = self._vid_feature_batch_seq_len - temp_vid_feat.shape[0]
                             extra_vid_feat = np.ones(
                                 (vid_feat_extra_frames, temp_vid_feat.shape[1], temp_vid_feat.shape[2], temp_vid_feat.shape[3])) * 1e-6
-                            print("extra_vid_feat: ", extra_vid_feat.shape)
+                            #print("extra_vid_feat: ", extra_vid_feat.shape)
                             if self.train_video:
                                 frame_extra_frames = self._vid_feature_batch_seq_len - temp_frame.shape[0]
                                 extra_frame = np.ones(
