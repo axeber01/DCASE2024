@@ -881,18 +881,8 @@ def main(argv):
 
         model, data_in, vid_data_in, data_out = get_model_and_sizes(params, data_gen_eval, device)
 
-        # ---------------------------------------------------------------------
-        # Evaluate on unseen test data
-        # ---------------------------------------------------------------------
-        # don't load best model, this is cherry picking
-        log_string('Not loading best model weights, using final model weights instead')
-        log_string('Load final model weights')
+        print('Load final model weights from:' + params['pretrained_model_weights'])
         model.load_state_dict(torch.load(params['pretrained_model_weights'], map_location='cpu'))
-
-        log_string('Loading unseen test dataset:')
-        data_gen_test = cls_data_generator.DataGenerator(
-            params=params, split=test_splits[split_cnt], shuffle=False, per_file=True,
-        )
 
         # Dump results in DCASE output format for calculating final scores
         loc_output = 'multiaccdoa' if params['multi_accdoa'] else 'accdoa'
@@ -902,6 +892,8 @@ def main(argv):
         print('Dumping recording-wise eval results in: {}'.format(dcase_output_test_folder))
 
         eval_epoch(data_gen_eval, model, dcase_output_test_folder, params, device)
+
+
 
 
     LOG_FOUT.close()
