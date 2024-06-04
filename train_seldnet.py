@@ -623,6 +623,9 @@ def main(argv):
             LOG_FOUT.flush()
             print(out_str, flush=True)
 
+        for key, value in params.items():
+            log_string("\t{}: {}".format(key, value))
+
         if '2020' in params['dataset_dir']:
             test_splits = [1]
             val_splits = [2]
@@ -674,11 +677,13 @@ def main(argv):
 
             # Load train and validation data
             log_string('Loading training dataset:')
+            log_string(str(train_splits[split_cnt]))
             data_gen_train = cls_data_generator.DataGenerator(
                 params=params, split=train_splits[split_cnt]
             )
 
             log_string('Loading validation dataset:')
+            log_string(str(val_splits[split_cnt]))
             data_gen_val= cls_data_generator.DataGenerator(
                 params=params, split=val_splits[split_cnt], shuffle=False, per_file=True
             )
