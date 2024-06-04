@@ -16,12 +16,14 @@ def get_params(argv='1'):
         # INPUT PATH
         #dataset_dir='./data_2024/',  # Base folder containing the foa/mic and metadata folders
         #dataset_dir='./sim_20_rooms/',
-        dataset_dir='./data_2024_soundq_aug/',
+        #dataset_dir='./data_2024_soundq_aug/',
+        dataset_dir='./data_2024_soundq_aug_with4',
 
         # OUTPUT PATHS
         #feat_label_dir='./data_2024/seld_feat_label/',  # Directory to dump extracted features and labels
         #feat_label_dir='./sim_20_rooms/seld_feat_label/',
-        feat_label_dir='./data_2024_soundq_aug/seld_feat_label/',
+        #feat_label_dir='./data_2024_soundq_aug/seld_feat_label/',
+        feat_label_dir='./data_2024_soundq_aug_with4/seld_feat_label/',
 
         model_dir='models',  # Dumps the trained models and training curves in this folder
         dcase_output_dir='results',  # recording-wise results are dumped in this path.
@@ -68,11 +70,11 @@ def get_params(argv='1'):
         nb_fnn_layers=1,
         fnn_size=128,  # FNN contents, length of list = number of layers, list value = number of nodes
 
-        nb_epochs=300,  # Train for maximum epochs
+        nb_epochs=175,  # Train for maximum epochs
         eval_freq=25, # evaluate every x epochs
         lr=1e-3,
         final_lr=1e-5, # final learning rate in cosine scheduler
-        weight_decay=0.0,
+        weight_decay=0.05,
         specaugment=False,
         augment=False,
         predict_tdoa=False,
@@ -310,6 +312,10 @@ def get_params(argv='1'):
         params['tracks'] = 3
         params['fixed_tdoa'] = True
         params['augment'] = False
+
+        if params['mode'] == 'eval':
+            params['pretrained_model_weights'] = 'models_audio/333_cst-3event-repeat-300-aug-wd05_dev_split0_multiaccdoa_mic_gcc_model_final.h5'
+
 
 
     elif argv == '7':

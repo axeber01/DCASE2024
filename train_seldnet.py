@@ -630,9 +630,14 @@ def main(argv):
             val_splits = [[4]]
             train_splits = [[1, 2, 3]] 
         elif '2024' in params['dataset_dir']:
-            test_splits = [[4]]
-            val_splits = [[4]]
-            train_splits = [[1, 2, 3, 9]]# [[1, 2, 3, 9]] # split 1 and 2 are simulated data, 3 and 4 are real recordings, 9 is extra simulated with rare classes
+            if 'with4' in params['dataset_dir']:
+                test_splits = [[2]]
+                val_splits = [[2]]
+                train_splits = [[1, 2, 3, 4, 9]]# [[1, 2, 3, 9]] # split 1 and 2 are simulated data, 3 and 4 are real recordings, 9 is extra simulated with rare classes
+            else:
+                test_splits = [[4]]
+                val_splits = [[4]]
+                train_splits = [[1, 2, 3, 9]]
 
         else:
             log_string('ERROR: Unknown dataset splits')
