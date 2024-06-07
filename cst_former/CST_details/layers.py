@@ -76,12 +76,12 @@ class FC_layer(torch.nn.Module):
         doa = self.fnn_list[-1](x)
 
        	doa = doa.reshape(doa.size(0), doa.size(1), 3, 4, 13)
-        doa1 = doa[:, :, :, :3, :]
-        dist = doa[:, :, :, 3:, :]
+        #doa1 = doa[:, :, :, :3, :]
+        #dist = doa[:, :, :, 3:, :]
 
-        doa1 = self.doa_act(doa1)
-        dist = self.dist_act(dist)
-        doa = torch.cat((doa1, dist), dim=3)
+        #doa1 = self.doa_act(doa1)
+        #dist = self.dist_act(dist)
+        #doa = torch.cat((doa1, dist), dim=3)
 
         doa = doa.reshape((doa.size(0), doa.size(1), -1))
         return doa
