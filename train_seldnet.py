@@ -26,6 +26,18 @@ from torch_audiomentations import AddColoredNoise
 from cst_former.CST_former_model import CST_former
 from torchsummary import summary
 from warmup_scheduler import GradualWarmupScheduler
+import random
+
+def seed_everything(seed):
+    torch.manual_seed(seed)
+    random.seed(seed)
+    np.random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
 
 def get_model_and_sizes(params, data_gen, device):
     # Collect i/o data size and load model configuration
@@ -91,14 +103,18 @@ def center_mic_coords(mic_coords, mic_center):
 class TdoaLoss(nn.Module):
     def __init__(self, fs=24000, c=343, nmics=4, ntdoas=6, max_tau=6, tracks=5):
         super(TdoaLoss, self).__init__()
-        loss_module = nn.CrossEntropyLoss(ignore_index=-100, reduction='none')
-        self.pit_loss = PitWrapper(loss_module)
+        self.ignore_idx = int(-100) # this is for ignoring tim frames with no active events
+        self.loss_module = nn.CrossEntropyLoss(ignore_index=-100, reduction='none')
+        self.pit_loss = PitWrapper(self.loss_module)
         self.fs = fs
         self.c = c
         self.nmics = nmics
         self.ntdoas = ntdoas
-        self.max_tau = max_tau
+        self.max_tau = int(max_tau)
         self.tracks = tracks 
+        assert self.tracks <= 3 # we do not support more than 3 tracks
+        self.max_events = 3 # more than 3 events are discarded.
+
 
         m1_coords = [0.042, 45, 35]
         m2_coords = [0.042, -45, -35]
@@ -112,18 +128,16 @@ class TdoaLoss(nn.Module):
 
     def get_tdoa_target(self, target):
         B, T, _, F, C = target.shape
-        Tr = 5 # up to 5 events is possible
-        tdoas = torch.zeros((B, T, Tr, self.ntdoas))
+        tdoas = torch.zeros((B, T, self.max_events, self.ntdoas))
         tdoas[:] = torch.nan
-        ignore_idx = int(-100)
-        max_tau = int(self.max_tau)
+        tdoas2 = tdoas.clone()
         for b in range(B):
             for t in range(T):
                 tr_cnt = 0
                 n_active = 0
-                for tr in range(Tr):
+                for tr in range(self.max_events):
                     for c in range(C):
-                        if tr_cnt >= Tr:
+                        if tr_cnt >= self.max_events:
                             break
                         active = target[b, t, tr, 0, c]
                         if active:
@@ -138,33 +152,89 @@ class TdoaLoss(nn.Module):
                                     mic2 = self.mic_locs[m2]
                                     tdoa = torch.sqrt(torch.sum((source_loc-mic1)**2)) - torch.sqrt(torch.sum((source_loc-mic2)**2))
                                     tdoa = int(torch.round(tdoa*self.fs/self.c))
-                                    tdoas[b, t, tr_cnt, cnt] = tdoa+max_tau
+                                    tdoas[b, t, tr_cnt, cnt] = tdoa+self.max_tau
+                                    tdoas2[b, t, tr_cnt, cnt] = tdoa+self.max_tau
                                     cnt +=1
                             tr_cnt +=1
                 if n_active == 0:
-                    tdoas[b, t, :, :] = ignore_idx
-                elif tr_cnt < Tr and n_active > 0:
+                    tdoas[b, t, :, :] = self.ignore_idx
+                    tdoas2[b, t, :, :] = self.ignore_idx
+                elif tr_cnt < self.max_events and n_active > 0:
                     tdoas[b, t, tr_cnt:, :] = tdoas[b, t, tr_cnt-1, :] # repeat the last event
+                    tdoas2[b, t, tr_cnt:, :] = tdoas[b, t, 0, :] # repeat the first event
 
-
-        #tdoas = scramble(tdoas, axis=2) # don't scramble, because we should have same permutations in t-direction
-        
-        #tdoas = np.swapaxes(tdoas, 0, 2)
-        #np.random.shuffle(tdoas) # shuffle along axis 0 (track axis)
-        #tdoas = np.swapaxes(tdoas, 0, 2)
-        tdoas = tdoas[:, :, :self.tracks]
-
-        return tdoas
+        return tdoas, tdoas2
     
     def forward(self, pred, target):
         self.mic_locs = self.mic_locs.to(target.device)
         #print("calculating target")
-        tdoa_target = self.get_tdoa_target(target)
+        tdoa_target, tdoa_target_2 = self.get_tdoa_target(target)
         B, T, C, Tr, ntdoa = pred.shape
-        tdoa_target = tdoa_target.permute(0, 1, 3, 2).reshape(B*T*ntdoa, Tr).long().to(pred.device)  
+        tdoa_target = tdoa_target.permute(0, 1, 3, 2).reshape(B*T*ntdoa, self.max_events).long().to(pred.device)  
         pred = pred.permute(0, 1, 4, 2, 3).reshape(B*T*ntdoa, C, Tr)   
+
+        if self.tracks == 1: # there are up to 3 events. Check each loss and return the minimum (per-example)
+            t1 = tdoa_target[:, 0].unsqueeze(1)
+            t2 = tdoa_target[:, 1].unsqueeze(1)
+            t3 = tdoa_target[:, 2].unsqueeze(1)
+
+            loss1, opt_p1 = self.pit_loss(pred.unsqueeze(1), t1.unsqueeze(1))
+            loss2, opt_p2 = self.pit_loss(pred.unsqueeze(1), t2.unsqueeze(1))
+            loss3, opt_p3 = self.pit_loss(pred.unsqueeze(1), t3.unsqueeze(1))
+
+            loss_min = torch.min(
+                torch.stack((loss1, loss2, loss3), dim=0), dim=0).indices
+            loss = (loss1 * (loss_min.unsqueeze(1) == 0) + loss2 * (loss_min.unsqueeze(1) == 1) + loss3 * (loss_min.unsqueeze(1) == 2))
+            tdoa_target = (t1 * (loss_min.unsqueeze(1) == 0) + t2 * (loss_min.unsqueeze(1) == 1) + t3 * (loss_min.unsqueeze(1) == 2))
+
+
+            opt_p = []
+            for b in range(tdoa_target.shape[0]):
+                if loss_min[b] == 0:
+                    opt_p.append(opt_p1[b])
+                elif loss_min[b] == 1:
+                    opt_p.append(opt_p2[b])
+                else:
+                    opt_p.append(opt_p3[b])
+
+        elif self.tracks == 2: # we need to check combinations of the events (0, 1) (0, 2) and (1,2)
+            t1 = tdoa_target[:, 0:2]
+            t2 = tdoa_target[:, 1:3]
+            t3 = torch.stack((tdoa_target[:, 0], tdoa_target[:, 2]), dim=1)
+            loss1, opt_p1 = self.pit_loss(pred.unsqueeze(1), t1.unsqueeze(1))
+            loss2, opt_p2 = self.pit_loss(pred.unsqueeze(1), t2.unsqueeze(1))
+            loss3, opt_p3 = self.pit_loss(pred.unsqueeze(1), t3.unsqueeze(1))
+
+            loss_min = torch.min(
+                torch.stack((loss1, loss2, loss3), dim=0), dim=0).indices
+
+            loss = (loss1 * (loss_min.unsqueeze(1) == 0) + loss2 * (loss_min.unsqueeze(1) == 1) + loss3 * (loss_min.unsqueeze(1) == 2))
+            tdoa_target = (t1 * (loss_min.unsqueeze(1) == 0) + t2 * (loss_min.unsqueeze(1) == 1) + t3 * (loss_min.unsqueeze(1) == 2))
+
+            opt_p = []
+            for b in range(tdoa_target.shape[0]):
+                if loss_min[b] == 0:
+                    opt_p.append(opt_p1[b])
+                elif loss_min[b] == 1:
+                    opt_p.append(opt_p2[b])
+                else:
+                    opt_p.append(opt_p3[b])
+
         
-        loss, opt_p = self.pit_loss(pred.unsqueeze(1), tdoa_target.unsqueeze(1))
+        else: # there are 3 tracks, but we need two losses. 
+            #If there are 1 or 3 events, they will be identical, but if there are 2 events they will be different
+            loss1, opt_p1 = self.pit_loss(pred.unsqueeze(1), tdoa_target.unsqueeze(1)) # here the last event is repeated
+            tdoa_target_2 = tdoa_target_2.permute(0, 1, 3, 2).reshape(B*T*ntdoa, self.max_events).long().to(pred.device) 
+            loss2, opt_p2 = self.pit_loss(pred.unsqueeze(1), tdoa_target_2.unsqueeze(1)) # here the first event is repeated
+
+            loss_min = torch.min(
+                torch.stack((loss1, loss2), dim=0), dim=0).indices
+            
+
+            loss = (loss1 * (loss_min == 0) + loss2 * (loss_min == 1))
+            tdoa_target = (tdoa_target * (loss_min.unsqueeze(1) == 0) + tdoa_target_2 * (loss_min.unsqueeze(1) == 1))
+
+
         acc = 0.
         n_pred = 0.
         for b in range(tdoa_target.shape[0]):
@@ -570,11 +640,11 @@ def main(argv):
 
     """
     print(argv)
-    if len(argv) != 3:
+    if len(argv) != 4:
         print('\n\n')
         print('-------------------------------------------------------------------------------------------------------')
         print('The code expected two optional inputs')
-        print('\t>> python seld.py <task-id> <job-id>')
+        print('\t>> python seld.py <task-id> <job-id> <seed>')
         print('\t\t<task-id> is used to choose the user-defined parameter set from parameter.py')
         print('Using default inputs for now')
         print('\t\t<job-id> is a unique identifier which is used for output filenames (models, training plots). '
@@ -590,8 +660,12 @@ def main(argv):
     task_id = '1' if len(argv) < 2 else argv[1]
     params = parameters.get_params(task_id)
 
-    job_id = 1 if len(argv) < 3 else argv[-1]
+    job_id = 1 if len(argv) < 3 else argv[2]
 
+    seed = 42 if len(argv) < 4 else int(argv[3])
+
+    # set the random seed
+    seed_everything(seed)
 
     # Training setup
     train_splits, val_splits, test_splits = None, None, None
