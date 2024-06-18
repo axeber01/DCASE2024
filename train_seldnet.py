@@ -234,6 +234,13 @@ class TdoaLoss(nn.Module):
             loss = (loss1 * (loss_min == 0) + loss2 * (loss_min == 1))
             tdoa_target = (tdoa_target * (loss_min.unsqueeze(1) == 0) + tdoa_target_2 * (loss_min.unsqueeze(1) == 1))
 
+            opt_p = []
+            for b in range(tdoa_target.shape[0]):
+                if loss_min[b] == 0:
+                    opt_p.append(opt_p1[b])
+                else:
+                    opt_p.append(opt_p2[b])
+
 
         acc = 0.
         n_pred = 0.
