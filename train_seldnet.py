@@ -24,7 +24,7 @@ from model import NGCCModel
 from speechbrain.nnet.losses import PitWrapper 
 from torch_audiomentations import AddColoredNoise
 from cst_former.CST_former_model import CST_former
-from torchsummary import summary
+from torchinfo import summary
 from warmup_scheduler import GradualWarmupScheduler
 
 def get_model_and_sizes(params, data_gen, device):
@@ -634,10 +634,14 @@ def main(argv):
                 test_splits = [[2]]
                 val_splits = [[2]]
                 train_splits = [[1, 2, 3, 4, 9]]# [[1, 2, 3, 9]] # split 1 and 2 are simulated data, 3 and 4 are real recordings, 9 is extra simulated with rare classes
-            else:
+            elif 'soundq' in params['dataset_dir']:
                 test_splits = [[4]]
                 val_splits = [[4]]
                 train_splits = [[1, 2, 3, 9]]
+            else:
+                test_splits = [[4]]
+                val_splits = [[4]]
+                train_splits = [[3]]
 
         else:
             log_string('ERROR: Unknown dataset splits')
@@ -699,7 +703,10 @@ def main(argv):
                 params['dropout_rate'], params['nb_cnn2d_filt'], params['f_pool_size'], params['t_pool_size'], params['rnn_size'], params['nb_self_attn_layers'],
                 params['fnn_size']))
             if not params['predict_tdoa']:
-                summary(model, data_in[1:])
+                if vid_data_in is not None:
+                    summary(model, [data_in, vid_data_in])
+                else:
+                    summary(model, data_in)
 
             # Dump results in DCASE output format for calculating final scores
             dcase_output_val_folder = os.path.join(params['dcase_output_dir'], '{}_{}_val'.format(unique_name, strftime("%Y%m%d%H%M%S", gmtime())))
@@ -879,7 +886,7 @@ def main(argv):
         # Dump results in DCASE output format for calculating final scores
         loc_output = 'multiaccdoa' if params['multi_accdoa'] else 'accdoa'
 
-        dcase_output_test_folder = os.path.join(params['dcase_output_dir'], '{}_{}_{}_eval'.format(params['dataset'], loc_output, strftime("%Y%m%d%H%M%S", gmtime())))
+        dcase_output_test_folder = os.path.join(params['dcase_output_dir'], '{}_{}_eval'.format(params['pretrained_model_weights'], strftime("%Y%m%d%H%M%S", gmtime())))
         cls_feature_class.delete_and_create_folder(dcase_output_test_folder)
         print('Dumping recording-wise eval results in: {}'.format(dcase_output_test_folder))
 
