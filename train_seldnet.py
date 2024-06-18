@@ -134,14 +134,13 @@ class TdoaLoss(nn.Module):
         for b in range(B):
             for t in range(T):
                 tr_cnt = 0
-                n_active = 0
                 for tr in range(self.max_events):
                     for c in range(C):
                         if tr_cnt >= self.max_events:
                             break
                         active = target[b, t, tr, 0, c]
                         if active:
-                            n_active +=1
+                            tr_cnt +=1
                             doa = target[b, t, tr, 1:4, c].squeeze()
                             dist = target[b, t, tr, 4, c]
                             source_loc = doa * dist
@@ -155,11 +154,10 @@ class TdoaLoss(nn.Module):
                                     tdoas[b, t, tr_cnt, cnt] = tdoa+self.max_tau
                                     tdoas2[b, t, tr_cnt, cnt] = tdoa+self.max_tau
                                     cnt +=1
-                            tr_cnt +=1
-                if n_active == 0:
+                if tr_cnt == 0:
                     tdoas[b, t, :, :] = self.ignore_idx
                     tdoas2[b, t, :, :] = self.ignore_idx
-                elif tr_cnt < self.max_events and n_active > 0:
+                elif tr_cnt < self.max_events:
                     tdoas[b, t, tr_cnt:, :] = tdoas[b, t, tr_cnt-1, :] # repeat the last event
                     tdoas2[b, t, tr_cnt:, :] = tdoas[b, t, 0, :] # repeat the first event
 
