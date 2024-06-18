@@ -142,14 +142,12 @@ class NGCCPHAT(nn.Module):
                 nn.LeakyReLU(0.2)) for i, k in enumerate(self.mlp_kernels)])
         
 
-        self.final_conv = nn.Conv1d(num_channels, num_out_channels, kernel_size=self.final_kernel)
+        self.final_conv = nn.Sequential(nn.Conv1d(num_channels, num_out_channels, kernel_size=self.final_kernel),
+                                        nn.BatchNorm1d(num_out_channels),
+                                        nn.LeakyReLU(0.2))
 
         if self.predict_tdoa:
-            self.tdoa_conv = nn.Sequential(
-                nn.Conv1d(num_out_channels, tracks, kernel_size=self.final_kernel),
-                nn.BatchNorm1d(tracks),
-                nn.GELU()
-            )
+            self.tdoa_conv = nn.Conv1d(num_out_channels, tracks, kernel_size=self.final_kernel)
 
         self.spec_conv = nn.Sequential(
                 nn.Conv1d(num_channels, num_out_channels, kernel_size=self.final_kernel, stride=self.final_kernel),
@@ -164,14 +162,6 @@ class NGCCPHAT(nn.Module):
                 nn.Dropout(0.5),
                 nn.Linear(self.n_mel_bins // 2, self.n_mel_bins)
         )
-        #self.cc_drop = nn.Dropout(0.5)
-
-        #self.spec_conv = nn.Sequential(
-                #nn.Conv1d(num_channels, num_out_channels, self.final_kernel),
-                #nn.BatchNorm1d(num_out_channels),
-                #nn.LeakyReLU(0.2),
-                #n.Dropout(0.5)
-        #)
 
         
         if self.use_mel:
@@ -209,15 +199,8 @@ class NGCCPHAT(nn.Module):
             B, M, T, L = audio.shape # (batch_size, #mics, #time_windows, win_len)
             x = audio.reshape(-1, 1, T*L)
             x = self.backbone(x)
-            #x = self.pool(x)
-
-            #s = x.shape[2]
-            #padding = get_pad(
-            #    size=s, kernel_size=self.final_kernel, stride=1, dilation=1)
-            #x_spec = F.pad(x, pad=padding, mode='constant')
 
             _, C, _ = x.shape
-            #T = int(T / self.pool_len)
             L_spec = int(L // self.final_kernel)
             x_cc = x.reshape(B, M, C, T*L) # (batch_size, #mics, channels, #time_windows * win_len)
             x_cc = x.reshape(B, M, C, T, L).permute(0, 1, 3, 2, 4) # (batch_size, #mics, #time_windows, channels, win_len)
@@ -237,13 +220,10 @@ class NGCCPHAT(nn.Module):
                     y1 = x_cc[:, m1, :, :, :]
                     y2 = x_cc[:, m2, :, :, :]
                     cc1 = self.gcc(y1, y2) # (batch_size, #time_windows, channels, #delays)
-                    #cc2 = torch.flip(cc1, dims=[-1]) # if we have cc(m1, m2), do we need cc(m2,m1)?
                     cc.append(cc1)
-                    #cc.append(cc2)
 
             cc = torch.stack(cc, dim=-1) # (batch_size, #time_windows, channels, #delays, #combinations)
             cc = cc.permute(0, 4, 1, 2, 3) # (batch_size, #combinations, #time_windows, channels, #delays)
-        #cc = cc[:, :, :, :, 1:] #throw away one dely to make #delays even
 
             B, N, _, C, tau = cc.shape
             cc = cc.reshape(-1, C, tau)
@@ -278,7 +258,6 @@ class NGCCPHAT(nn.Module):
         cc = cc.permute(0, 1, 3, 2, 4)  # (batch_size, #combinations, channels, #time_windows, #delays)
         cc = cc.reshape(B, N * C, T, tau) # (batch_size, #combinations * channels, #time_windows, #delays)
         cc = self.cc_proj(cc)
-        #cc = self.cc_drop(cc)
 
         if self.normalize_output:
             cc /= cc.std(dim=-1, keepdims=True)
