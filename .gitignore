@@ -1,1 +1,7 @@
 *.out
+models_audio/
+results_audio/
+logs/
+*.sh
+data_2024*
+*pycache*
