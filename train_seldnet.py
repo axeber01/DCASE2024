@@ -133,14 +133,13 @@ class TdoaLoss(nn.Module):
         tdoas2 = tdoas.clone()
         for b in range(B):
             for t in range(T):
-                tr_cnt = 0
+                tr_cnt = 0 # the track counter keeps track of the # of active events
                 for tr in range(self.max_events):
                     for c in range(C):
                         if tr_cnt >= self.max_events:
                             break
                         active = target[b, t, tr, 0, c]
                         if active:
-                            tr_cnt +=1
                             doa = target[b, t, tr, 1:4, c].squeeze()
                             dist = target[b, t, tr, 4, c]
                             source_loc = doa * dist
@@ -154,6 +153,9 @@ class TdoaLoss(nn.Module):
                                     tdoas[b, t, tr_cnt, cnt] = tdoa+self.max_tau
                                     tdoas2[b, t, tr_cnt, cnt] = tdoa+self.max_tau
                                     cnt +=1
+
+                            tr_cnt += 1
+
                 if tr_cnt == 0:
                     tdoas[b, t, :, :] = self.ignore_idx
                     tdoas2[b, t, :, :] = self.ignore_idx
@@ -612,7 +614,7 @@ def train_epoch(data_generator, optimizer, model, criterion, params, device, cri
                 if not torch.isnan(loss2):
                     tdoa_loss_ma = 0.95 * tdoa_loss_ma + 0.05 * loss2.item()
                     tdoa_acc_ma = 0.95 * tdoa_acc_ma + 0.05 * acc
-            print("tdoa loss: " + str(tdoa_loss_ma)+ ", tdoa acc: " + str(tdoa_acc_ma), flush=True)
+            print("batch : " + str(nb_train_batches) + ", tdoa loss: " + str(tdoa_loss_ma)+ ", tdoa acc: " + str(tdoa_acc_ma), flush=True)
             loss = (1.0 - params['lambda']) * loss1 + params['lambda'] * loss2
         else:
             loss = criterion(output, target)
@@ -720,7 +722,7 @@ def main(argv):
             else:
                 test_splits = [[4]]
                 val_splits = [[4]]
-                train_splits = [[3]]
+                train_splits = [[1, 2, 3, 9]]
 
         else:
             log_string('ERROR: Unknown dataset splits')

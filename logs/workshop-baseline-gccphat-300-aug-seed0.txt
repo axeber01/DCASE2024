@@ -1,0 +1,417 @@
+	quick_test: False
+	finetune_mode: False
+	dataset_dir: ./data_2024_soundq_aug/
+	feat_label_dir: ./data_2024_soundq_aug/seld_feat_label/
+	model_dir: models_audio
+	dcase_output_dir: results_audio
+	mode: dev
+	dataset: mic
+	fs: 24000
+	hop_len_s: 0.02
+	label_hop_len_s: 0.1
+	max_audio_len_s: 60
+	nb_mel_bins: 64
+	use_salsalite: False
+	raw_chunks: False
+	saved_chunks: False
+	fmin_doa_salsalite: 50
+	fmax_doa_salsalite: 2000
+	fmax_spectra_salsalite: 9000
+	model: seldnet
+	modality: audio
+	multi_accdoa: True
+	thresh_unify: 15
+	label_sequence_length: 50
+	batch_size: 64
+	eval_batch_size: 64
+	dropout_rate: 0.05
+	nb_cnn2d_filt: 64
+	f_pool_size: [4, 4, 2]
+	nb_heads: 8
+	nb_self_attn_layers: 2
+	nb_transformer_layers: 2
+	nb_rnn_layers: 2
+	rnn_size: 128
+	nb_fnn_layers: 1
+	fnn_size: 128
+	nb_epochs: 300
+	eval_freq: 25
+	lr: 0.001
+	final_lr: 1e-05
+	weight_decay: 0.05
+	specaugment: False
+	augment: False
+	predict_tdoa: False
+	warmup: 5
+	relative_dist: True
+	no_dist: False
+	average: macro
+	segment_based_metrics: False
+	evaluate_distance: True
+	lad_doa_thresh: 20
+	lad_dist_thresh: inf
+	lad_reldist_thresh: 1.0
+	encoder: conv
+	LinearLayer: False
+	FreqAtten: False
+	ChAtten_DCA: False
+	ChAtten_ULE: False
+	CMT_block: False
+	CMT_split: False
+	use_ngcc: False
+	use_mfcc: False
+	feature_label_resolution: 5
+	feature_sequence_length: 250
+	t_pool_size: [5, 1, 1]
+	patience: 300
+	pretrained_model_weights: 6_1_dev_split0_multiaccdoa_mic_gcc_model.h5
+	n_mics: 4
+	unique_classes: 13
+
+
+---------------------------------------------------------------------------------------------------
+------------------------------------      SPLIT [4]   -----------------------------------------------
+---------------------------------------------------------------------------------------------------
+unique_name: 6_workshop-baseline-gccphat-300-aug-seed0_dev_split0_multiaccdoa_mic_gcc
+
+Loading training dataset:
+[1, 2, 3, 9]
+Loading validation dataset:
+[4]
+---------------- SELD-net -------------------
+FEATURES:
+	data_in: (64, 10, 250, 64)
+	data_out: (64, 50, 156)
+
+MODEL:
+	dropout_rate: 0.05
+	CNN: nb_cnn_filt: 64, f_pool_size[4, 4, 2], t_pool_size[5, 1, 1]
+, rnn_size: 128
+, nb_attention_blocks: 2
+, fnn_size: 128
+
+Dumping recording-wise val results in: results_audio/6_workshop-baseline-gccphat-300-aug-seed0_dev_split0_multiaccdoa_mic_gcc_20240619130749_val
+epoch: 0, time: 314.59/462.67, train_loss: 0.1991, val_loss: 0.1364, F/AE/Dist_err/Rel_dist_err/SELD: 0.00/90.10/2.06/0.95/0.82, best_val_epoch: 0 (0.00/90.10/2.06/0.95/0.82)
+epoch: 1, time: 287.26/462.67, train_loss: 0.0888, val_loss: 0.1364, F/AE/Dist_err/Rel_dist_err/SELD: 0.00/90.10/2.06/0.95/0.82, best_val_epoch: 0 (0.00/90.10/2.06/0.95/0.82)
+epoch: 2, time: 291.30/462.67, train_loss: 0.0856, val_loss: 0.1364, F/AE/Dist_err/Rel_dist_err/SELD: 0.00/90.10/2.06/0.95/0.82, best_val_epoch: 0 (0.00/90.10/2.06/0.95/0.82)
+epoch: 3, time: 288.07/462.67, train_loss: 0.0816, val_loss: 0.1364, F/AE/Dist_err/Rel_dist_err/SELD: 0.00/90.10/2.06/0.95/0.82, best_val_epoch: 0 (0.00/90.10/2.06/0.95/0.82)
+epoch: 4, time: 291.08/462.67, train_loss: 0.0783, val_loss: 0.1364, F/AE/Dist_err/Rel_dist_err/SELD: 0.00/90.10/2.06/0.95/0.82, best_val_epoch: 0 (0.00/90.10/2.06/0.95/0.82)
+epoch: 5, time: 292.50/462.67, train_loss: 0.0739, val_loss: 0.1364, F/AE/Dist_err/Rel_dist_err/SELD: 0.00/90.10/2.06/0.95/0.82, best_val_epoch: 0 (0.00/90.10/2.06/0.95/0.82)
+epoch: 6, time: 291.83/462.67, train_loss: 0.0696, val_loss: 0.1364, F/AE/Dist_err/Rel_dist_err/SELD: 0.00/90.10/2.06/0.95/0.82, best_val_epoch: 0 (0.00/90.10/2.06/0.95/0.82)
+epoch: 7, time: 291.99/462.67, train_loss: 0.0673, val_loss: 0.1364, F/AE/Dist_err/Rel_dist_err/SELD: 0.00/90.10/2.06/0.95/0.82, best_val_epoch: 0 (0.00/90.10/2.06/0.95/0.82)
+epoch: 8, time: 293.26/462.67, train_loss: 0.0661, val_loss: 0.1364, F/AE/Dist_err/Rel_dist_err/SELD: 0.00/90.10/2.06/0.95/0.82, best_val_epoch: 0 (0.00/90.10/2.06/0.95/0.82)
+epoch: 9, time: 294.48/462.67, train_loss: 0.0641, val_loss: 0.1364, F/AE/Dist_err/Rel_dist_err/SELD: 0.00/90.10/2.06/0.95/0.82, best_val_epoch: 0 (0.00/90.10/2.06/0.95/0.82)
+epoch: 10, time: 293.83/462.67, train_loss: 0.0623, val_loss: 0.1364, F/AE/Dist_err/Rel_dist_err/SELD: 0.00/90.10/2.06/0.95/0.82, best_val_epoch: 0 (0.00/90.10/2.06/0.95/0.82)
+epoch: 11, time: 289.30/462.67, train_loss: 0.0616, val_loss: 0.1364, F/AE/Dist_err/Rel_dist_err/SELD: 0.00/90.10/2.06/0.95/0.82, best_val_epoch: 0 (0.00/90.10/2.06/0.95/0.82)
+epoch: 12, time: 295.72/462.67, train_loss: 0.0601, val_loss: 0.1364, F/AE/Dist_err/Rel_dist_err/SELD: 0.00/90.10/2.06/0.95/0.82, best_val_epoch: 0 (0.00/90.10/2.06/0.95/0.82)
+epoch: 13, time: 299.09/462.67, train_loss: 0.0593, val_loss: 0.1364, F/AE/Dist_err/Rel_dist_err/SELD: 0.00/90.10/2.06/0.95/0.82, best_val_epoch: 0 (0.00/90.10/2.06/0.95/0.82)
+epoch: 14, time: 289.20/462.67, train_loss: 0.0579, val_loss: 0.1364, F/AE/Dist_err/Rel_dist_err/SELD: 0.00/90.10/2.06/0.95/0.82, best_val_epoch: 0 (0.00/90.10/2.06/0.95/0.82)
+epoch: 15, time: 289.55/462.67, train_loss: 0.0566, val_loss: 0.1364, F/AE/Dist_err/Rel_dist_err/SELD: 0.00/90.10/2.06/0.95/0.82, best_val_epoch: 0 (0.00/90.10/2.06/0.95/0.82)
+epoch: 16, time: 290.99/462.67, train_loss: 0.0565, val_loss: 0.1364, F/AE/Dist_err/Rel_dist_err/SELD: 0.00/90.10/2.06/0.95/0.82, best_val_epoch: 0 (0.00/90.10/2.06/0.95/0.82)
+epoch: 17, time: 291.49/462.67, train_loss: 0.0566, val_loss: 0.1364, F/AE/Dist_err/Rel_dist_err/SELD: 0.00/90.10/2.06/0.95/0.82, best_val_epoch: 0 (0.00/90.10/2.06/0.95/0.82)
+epoch: 18, time: 287.91/462.67, train_loss: 0.0543, val_loss: 0.1364, F/AE/Dist_err/Rel_dist_err/SELD: 0.00/90.10/2.06/0.95/0.82, best_val_epoch: 0 (0.00/90.10/2.06/0.95/0.82)
+epoch: 19, time: 296.59/462.67, train_loss: 0.0536, val_loss: 0.1364, F/AE/Dist_err/Rel_dist_err/SELD: 0.00/90.10/2.06/0.95/0.82, best_val_epoch: 0 (0.00/90.10/2.06/0.95/0.82)
+epoch: 20, time: 296.87/462.67, train_loss: 0.0533, val_loss: 0.1364, F/AE/Dist_err/Rel_dist_err/SELD: 0.00/90.10/2.06/0.95/0.82, best_val_epoch: 0 (0.00/90.10/2.06/0.95/0.82)
+epoch: 21, time: 294.41/462.67, train_loss: 0.0523, val_loss: 0.1364, F/AE/Dist_err/Rel_dist_err/SELD: 0.00/90.10/2.06/0.95/0.82, best_val_epoch: 0 (0.00/90.10/2.06/0.95/0.82)
+epoch: 22, time: 287.83/462.67, train_loss: 0.0523, val_loss: 0.1364, F/AE/Dist_err/Rel_dist_err/SELD: 0.00/90.10/2.06/0.95/0.82, best_val_epoch: 0 (0.00/90.10/2.06/0.95/0.82)
+epoch: 23, time: 300.01/462.67, train_loss: 0.0519, val_loss: 0.1364, F/AE/Dist_err/Rel_dist_err/SELD: 0.00/90.10/2.06/0.95/0.82, best_val_epoch: 0 (0.00/90.10/2.06/0.95/0.82)
+epoch: 24, time: 294.15/462.67, train_loss: 0.0503, val_loss: 0.1364, F/AE/Dist_err/Rel_dist_err/SELD: 0.00/90.10/2.06/0.95/0.82, best_val_epoch: 0 (0.00/90.10/2.06/0.95/0.82)
+epoch: 25, time: 289.71/107.90, train_loss: 0.0496, val_loss: 0.0703, F/AE/Dist_err/Rel_dist_err/SELD: 0.02/44.62/0.86/0.56/0.78, best_val_epoch: 25 (0.02/44.62/0.86/0.56/0.78)
+epoch: 26, time: 291.49/107.90, train_loss: 0.0500, val_loss: 0.0703, F/AE/Dist_err/Rel_dist_err/SELD: 0.02/44.62/0.86/0.56/0.78, best_val_epoch: 25 (0.02/44.62/0.86/0.56/0.78)
+epoch: 27, time: 292.62/107.90, train_loss: 0.0494, val_loss: 0.0703, F/AE/Dist_err/Rel_dist_err/SELD: 0.02/44.62/0.86/0.56/0.78, best_val_epoch: 25 (0.02/44.62/0.86/0.56/0.78)
+epoch: 28, time: 297.75/107.90, train_loss: 0.0489, val_loss: 0.0703, F/AE/Dist_err/Rel_dist_err/SELD: 0.02/44.62/0.86/0.56/0.78, best_val_epoch: 25 (0.02/44.62/0.86/0.56/0.78)
+epoch: 29, time: 297.71/107.90, train_loss: 0.0491, val_loss: 0.0703, F/AE/Dist_err/Rel_dist_err/SELD: 0.02/44.62/0.86/0.56/0.78, best_val_epoch: 25 (0.02/44.62/0.86/0.56/0.78)
+epoch: 30, time: 292.19/107.90, train_loss: 0.0476, val_loss: 0.0703, F/AE/Dist_err/Rel_dist_err/SELD: 0.02/44.62/0.86/0.56/0.78, best_val_epoch: 25 (0.02/44.62/0.86/0.56/0.78)
+epoch: 31, time: 296.28/107.90, train_loss: 0.0525, val_loss: 0.0703, F/AE/Dist_err/Rel_dist_err/SELD: 0.02/44.62/0.86/0.56/0.78, best_val_epoch: 25 (0.02/44.62/0.86/0.56/0.78)
+epoch: 32, time: 293.94/107.90, train_loss: 0.0482, val_loss: 0.0703, F/AE/Dist_err/Rel_dist_err/SELD: 0.02/44.62/0.86/0.56/0.78, best_val_epoch: 25 (0.02/44.62/0.86/0.56/0.78)
+epoch: 33, time: 293.09/107.90, train_loss: 0.0465, val_loss: 0.0703, F/AE/Dist_err/Rel_dist_err/SELD: 0.02/44.62/0.86/0.56/0.78, best_val_epoch: 25 (0.02/44.62/0.86/0.56/0.78)
+epoch: 34, time: 296.05/107.90, train_loss: 0.0472, val_loss: 0.0703, F/AE/Dist_err/Rel_dist_err/SELD: 0.02/44.62/0.86/0.56/0.78, best_val_epoch: 25 (0.02/44.62/0.86/0.56/0.78)
+epoch: 35, time: 294.87/107.90, train_loss: 0.0462, val_loss: 0.0703, F/AE/Dist_err/Rel_dist_err/SELD: 0.02/44.62/0.86/0.56/0.78, best_val_epoch: 25 (0.02/44.62/0.86/0.56/0.78)
+epoch: 36, time: 295.80/107.90, train_loss: 0.0453, val_loss: 0.0703, F/AE/Dist_err/Rel_dist_err/SELD: 0.02/44.62/0.86/0.56/0.78, best_val_epoch: 25 (0.02/44.62/0.86/0.56/0.78)
+epoch: 37, time: 296.35/107.90, train_loss: 0.0462, val_loss: 0.0703, F/AE/Dist_err/Rel_dist_err/SELD: 0.02/44.62/0.86/0.56/0.78, best_val_epoch: 25 (0.02/44.62/0.86/0.56/0.78)
+epoch: 38, time: 295.11/107.90, train_loss: 0.0459, val_loss: 0.0703, F/AE/Dist_err/Rel_dist_err/SELD: 0.02/44.62/0.86/0.56/0.78, best_val_epoch: 25 (0.02/44.62/0.86/0.56/0.78)
+epoch: 39, time: 297.18/107.90, train_loss: 0.0459, val_loss: 0.0703, F/AE/Dist_err/Rel_dist_err/SELD: 0.02/44.62/0.86/0.56/0.78, best_val_epoch: 25 (0.02/44.62/0.86/0.56/0.78)
+epoch: 40, time: 299.22/107.90, train_loss: 0.0456, val_loss: 0.0703, F/AE/Dist_err/Rel_dist_err/SELD: 0.02/44.62/0.86/0.56/0.78, best_val_epoch: 25 (0.02/44.62/0.86/0.56/0.78)
+epoch: 41, time: 297.99/107.90, train_loss: 0.0453, val_loss: 0.0703, F/AE/Dist_err/Rel_dist_err/SELD: 0.02/44.62/0.86/0.56/0.78, best_val_epoch: 25 (0.02/44.62/0.86/0.56/0.78)
+epoch: 42, time: 295.43/107.90, train_loss: 0.0445, val_loss: 0.0703, F/AE/Dist_err/Rel_dist_err/SELD: 0.02/44.62/0.86/0.56/0.78, best_val_epoch: 25 (0.02/44.62/0.86/0.56/0.78)
+epoch: 43, time: 299.42/107.90, train_loss: 0.0460, val_loss: 0.0703, F/AE/Dist_err/Rel_dist_err/SELD: 0.02/44.62/0.86/0.56/0.78, best_val_epoch: 25 (0.02/44.62/0.86/0.56/0.78)
+epoch: 44, time: 294.40/107.90, train_loss: 0.0435, val_loss: 0.0703, F/AE/Dist_err/Rel_dist_err/SELD: 0.02/44.62/0.86/0.56/0.78, best_val_epoch: 25 (0.02/44.62/0.86/0.56/0.78)
+epoch: 45, time: 298.66/107.90, train_loss: 0.0436, val_loss: 0.0703, F/AE/Dist_err/Rel_dist_err/SELD: 0.02/44.62/0.86/0.56/0.78, best_val_epoch: 25 (0.02/44.62/0.86/0.56/0.78)
+epoch: 46, time: 293.57/107.90, train_loss: 0.0442, val_loss: 0.0703, F/AE/Dist_err/Rel_dist_err/SELD: 0.02/44.62/0.86/0.56/0.78, best_val_epoch: 25 (0.02/44.62/0.86/0.56/0.78)
+epoch: 47, time: 293.88/107.90, train_loss: 0.0425, val_loss: 0.0703, F/AE/Dist_err/Rel_dist_err/SELD: 0.02/44.62/0.86/0.56/0.78, best_val_epoch: 25 (0.02/44.62/0.86/0.56/0.78)
+epoch: 48, time: 297.31/107.90, train_loss: 0.0430, val_loss: 0.0703, F/AE/Dist_err/Rel_dist_err/SELD: 0.02/44.62/0.86/0.56/0.78, best_val_epoch: 25 (0.02/44.62/0.86/0.56/0.78)
+epoch: 49, time: 298.78/107.90, train_loss: 0.0473, val_loss: 0.0703, F/AE/Dist_err/Rel_dist_err/SELD: 0.02/44.62/0.86/0.56/0.78, best_val_epoch: 25 (0.02/44.62/0.86/0.56/0.78)
+epoch: 50, time: 294.15/106.14, train_loss: 0.0437, val_loss: 0.0563, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/42.54/1.54/0.73/0.75, best_val_epoch: 50 (0.03/42.54/1.54/0.73/0.75)
+epoch: 51, time: 289.95/106.14, train_loss: 0.0427, val_loss: 0.0563, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/42.54/1.54/0.73/0.75, best_val_epoch: 50 (0.03/42.54/1.54/0.73/0.75)
+epoch: 52, time: 293.65/106.14, train_loss: 0.0434, val_loss: 0.0563, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/42.54/1.54/0.73/0.75, best_val_epoch: 50 (0.03/42.54/1.54/0.73/0.75)
+epoch: 53, time: 297.42/106.14, train_loss: 0.0419, val_loss: 0.0563, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/42.54/1.54/0.73/0.75, best_val_epoch: 50 (0.03/42.54/1.54/0.73/0.75)
+epoch: 54, time: 293.68/106.14, train_loss: 0.0417, val_loss: 0.0563, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/42.54/1.54/0.73/0.75, best_val_epoch: 50 (0.03/42.54/1.54/0.73/0.75)
+epoch: 55, time: 298.75/106.14, train_loss: 0.0413, val_loss: 0.0563, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/42.54/1.54/0.73/0.75, best_val_epoch: 50 (0.03/42.54/1.54/0.73/0.75)
+epoch: 56, time: 294.65/106.14, train_loss: 0.0447, val_loss: 0.0563, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/42.54/1.54/0.73/0.75, best_val_epoch: 50 (0.03/42.54/1.54/0.73/0.75)
+epoch: 57, time: 293.04/106.14, train_loss: 0.0419, val_loss: 0.0563, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/42.54/1.54/0.73/0.75, best_val_epoch: 50 (0.03/42.54/1.54/0.73/0.75)
+epoch: 58, time: 296.84/106.14, train_loss: 0.0408, val_loss: 0.0563, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/42.54/1.54/0.73/0.75, best_val_epoch: 50 (0.03/42.54/1.54/0.73/0.75)
+epoch: 59, time: 295.84/106.14, train_loss: 0.0423, val_loss: 0.0563, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/42.54/1.54/0.73/0.75, best_val_epoch: 50 (0.03/42.54/1.54/0.73/0.75)
+epoch: 60, time: 293.76/106.14, train_loss: 0.0441, val_loss: 0.0563, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/42.54/1.54/0.73/0.75, best_val_epoch: 50 (0.03/42.54/1.54/0.73/0.75)
+epoch: 61, time: 293.34/106.14, train_loss: 0.0421, val_loss: 0.0563, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/42.54/1.54/0.73/0.75, best_val_epoch: 50 (0.03/42.54/1.54/0.73/0.75)
+epoch: 62, time: 295.88/106.14, train_loss: 0.0405, val_loss: 0.0563, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/42.54/1.54/0.73/0.75, best_val_epoch: 50 (0.03/42.54/1.54/0.73/0.75)
+epoch: 63, time: 295.45/106.14, train_loss: 0.0413, val_loss: 0.0563, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/42.54/1.54/0.73/0.75, best_val_epoch: 50 (0.03/42.54/1.54/0.73/0.75)
+epoch: 64, time: 296.10/106.14, train_loss: 0.0415, val_loss: 0.0563, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/42.54/1.54/0.73/0.75, best_val_epoch: 50 (0.03/42.54/1.54/0.73/0.75)
+epoch: 65, time: 292.81/106.14, train_loss: 0.0407, val_loss: 0.0563, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/42.54/1.54/0.73/0.75, best_val_epoch: 50 (0.03/42.54/1.54/0.73/0.75)
+epoch: 66, time: 298.33/106.14, train_loss: 0.0398, val_loss: 0.0563, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/42.54/1.54/0.73/0.75, best_val_epoch: 50 (0.03/42.54/1.54/0.73/0.75)
+epoch: 67, time: 295.06/106.14, train_loss: 0.0397, val_loss: 0.0563, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/42.54/1.54/0.73/0.75, best_val_epoch: 50 (0.03/42.54/1.54/0.73/0.75)
+epoch: 68, time: 293.04/106.14, train_loss: 0.0432, val_loss: 0.0563, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/42.54/1.54/0.73/0.75, best_val_epoch: 50 (0.03/42.54/1.54/0.73/0.75)
+epoch: 69, time: 297.26/106.14, train_loss: 0.0421, val_loss: 0.0563, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/42.54/1.54/0.73/0.75, best_val_epoch: 50 (0.03/42.54/1.54/0.73/0.75)
+epoch: 70, time: 296.81/106.14, train_loss: 0.0406, val_loss: 0.0563, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/42.54/1.54/0.73/0.75, best_val_epoch: 50 (0.03/42.54/1.54/0.73/0.75)
+epoch: 71, time: 292.02/106.14, train_loss: 0.0434, val_loss: 0.0563, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/42.54/1.54/0.73/0.75, best_val_epoch: 50 (0.03/42.54/1.54/0.73/0.75)
+epoch: 72, time: 296.01/106.14, train_loss: 0.0395, val_loss: 0.0563, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/42.54/1.54/0.73/0.75, best_val_epoch: 50 (0.03/42.54/1.54/0.73/0.75)
+epoch: 73, time: 292.89/106.14, train_loss: 0.0389, val_loss: 0.0563, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/42.54/1.54/0.73/0.75, best_val_epoch: 50 (0.03/42.54/1.54/0.73/0.75)
+epoch: 74, time: 294.67/106.14, train_loss: 0.0403, val_loss: 0.0563, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/42.54/1.54/0.73/0.75, best_val_epoch: 50 (0.03/42.54/1.54/0.73/0.75)
+epoch: 75, time: 295.32/111.59, train_loss: 0.0430, val_loss: 0.0344, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/45.04/1.37/0.75/0.71, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 76, time: 293.22/111.59, train_loss: 0.0389, val_loss: 0.0344, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/45.04/1.37/0.75/0.71, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 77, time: 295.19/111.59, train_loss: 0.0391, val_loss: 0.0344, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/45.04/1.37/0.75/0.71, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 78, time: 294.50/111.59, train_loss: 0.0389, val_loss: 0.0344, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/45.04/1.37/0.75/0.71, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 79, time: 297.08/111.59, train_loss: 0.0407, val_loss: 0.0344, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/45.04/1.37/0.75/0.71, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 80, time: 294.13/111.59, train_loss: 0.0388, val_loss: 0.0344, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/45.04/1.37/0.75/0.71, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 81, time: 297.19/111.59, train_loss: 0.0387, val_loss: 0.0344, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/45.04/1.37/0.75/0.71, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 82, time: 294.72/111.59, train_loss: 0.0427, val_loss: 0.0344, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/45.04/1.37/0.75/0.71, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 83, time: 296.84/111.59, train_loss: 0.0387, val_loss: 0.0344, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/45.04/1.37/0.75/0.71, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 84, time: 294.76/111.59, train_loss: 0.0392, val_loss: 0.0344, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/45.04/1.37/0.75/0.71, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 85, time: 295.58/111.59, train_loss: 0.0378, val_loss: 0.0344, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/45.04/1.37/0.75/0.71, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 86, time: 290.91/111.59, train_loss: 0.0388, val_loss: 0.0344, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/45.04/1.37/0.75/0.71, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 87, time: 302.58/111.59, train_loss: 0.0390, val_loss: 0.0344, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/45.04/1.37/0.75/0.71, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 88, time: 297.95/111.59, train_loss: 0.0376, val_loss: 0.0344, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/45.04/1.37/0.75/0.71, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 89, time: 290.71/111.59, train_loss: 0.0380, val_loss: 0.0344, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/45.04/1.37/0.75/0.71, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 90, time: 291.56/111.59, train_loss: 0.0378, val_loss: 0.0344, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/45.04/1.37/0.75/0.71, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 91, time: 298.21/111.59, train_loss: 0.0374, val_loss: 0.0344, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/45.04/1.37/0.75/0.71, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 92, time: 292.28/111.59, train_loss: 0.0381, val_loss: 0.0344, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/45.04/1.37/0.75/0.71, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 93, time: 299.67/111.59, train_loss: 0.0375, val_loss: 0.0344, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/45.04/1.37/0.75/0.71, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 94, time: 298.84/111.59, train_loss: 0.0419, val_loss: 0.0344, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/45.04/1.37/0.75/0.71, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 95, time: 292.86/111.59, train_loss: 0.0387, val_loss: 0.0344, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/45.04/1.37/0.75/0.71, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 96, time: 298.30/111.59, train_loss: 0.0374, val_loss: 0.0344, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/45.04/1.37/0.75/0.71, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 97, time: 297.21/111.59, train_loss: 0.0367, val_loss: 0.0344, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/45.04/1.37/0.75/0.71, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 98, time: 299.72/111.59, train_loss: 0.0365, val_loss: 0.0344, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/45.04/1.37/0.75/0.71, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 99, time: 302.96/111.59, train_loss: 0.0363, val_loss: 0.0344, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/45.04/1.37/0.75/0.71, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 100, time: 290.94/114.55, train_loss: 0.0421, val_loss: 0.0619, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/39.96/1.06/0.62/0.72, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 101, time: 291.92/114.55, train_loss: 0.0392, val_loss: 0.0619, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/39.96/1.06/0.62/0.72, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 102, time: 297.75/114.55, train_loss: 0.0375, val_loss: 0.0619, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/39.96/1.06/0.62/0.72, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 103, time: 296.22/114.55, train_loss: 0.0386, val_loss: 0.0619, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/39.96/1.06/0.62/0.72, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 104, time: 296.48/114.55, train_loss: 0.0361, val_loss: 0.0619, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/39.96/1.06/0.62/0.72, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 105, time: 291.85/114.55, train_loss: 0.0359, val_loss: 0.0619, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/39.96/1.06/0.62/0.72, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 106, time: 298.42/114.55, train_loss: 0.0363, val_loss: 0.0619, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/39.96/1.06/0.62/0.72, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 107, time: 290.68/114.55, train_loss: 0.0362, val_loss: 0.0619, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/39.96/1.06/0.62/0.72, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 108, time: 299.29/114.55, train_loss: 0.0382, val_loss: 0.0619, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/39.96/1.06/0.62/0.72, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 109, time: 296.44/114.55, train_loss: 0.0369, val_loss: 0.0619, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/39.96/1.06/0.62/0.72, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 110, time: 289.31/114.55, train_loss: 0.0355, val_loss: 0.0619, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/39.96/1.06/0.62/0.72, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 111, time: 293.16/114.55, train_loss: 0.0353, val_loss: 0.0619, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/39.96/1.06/0.62/0.72, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 112, time: 289.09/114.55, train_loss: 0.0360, val_loss: 0.0619, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/39.96/1.06/0.62/0.72, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 113, time: 289.86/114.55, train_loss: 0.0355, val_loss: 0.0619, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/39.96/1.06/0.62/0.72, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 114, time: 290.82/114.55, train_loss: 0.0352, val_loss: 0.0619, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/39.96/1.06/0.62/0.72, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 115, time: 290.39/114.55, train_loss: 0.0346, val_loss: 0.0619, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/39.96/1.06/0.62/0.72, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 116, time: 288.50/114.55, train_loss: 0.0362, val_loss: 0.0619, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/39.96/1.06/0.62/0.72, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 117, time: 291.49/114.55, train_loss: 0.0347, val_loss: 0.0619, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/39.96/1.06/0.62/0.72, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 118, time: 290.21/114.55, train_loss: 0.0360, val_loss: 0.0619, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/39.96/1.06/0.62/0.72, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 119, time: 289.10/114.55, train_loss: 0.0345, val_loss: 0.0619, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/39.96/1.06/0.62/0.72, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 120, time: 295.49/114.55, train_loss: 0.0347, val_loss: 0.0619, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/39.96/1.06/0.62/0.72, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 121, time: 289.78/114.55, train_loss: 0.0338, val_loss: 0.0619, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/39.96/1.06/0.62/0.72, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 122, time: 289.40/114.55, train_loss: 0.0341, val_loss: 0.0619, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/39.96/1.06/0.62/0.72, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 123, time: 289.27/114.55, train_loss: 0.0346, val_loss: 0.0619, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/39.96/1.06/0.62/0.72, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 124, time: 292.23/114.55, train_loss: 0.0342, val_loss: 0.0619, F/AE/Dist_err/Rel_dist_err/SELD: 0.03/39.96/1.06/0.62/0.72, best_val_epoch: 75 (0.04/45.04/1.37/0.75/0.71)
+epoch: 125, time: 289.14/110.04, train_loss: 0.0336, val_loss: 0.0333, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/43.53/1.32/0.77/0.71, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 126, time: 287.65/110.04, train_loss: 0.0340, val_loss: 0.0333, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/43.53/1.32/0.77/0.71, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 127, time: 290.28/110.04, train_loss: 0.0349, val_loss: 0.0333, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/43.53/1.32/0.77/0.71, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 128, time: 292.93/110.04, train_loss: 0.0346, val_loss: 0.0333, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/43.53/1.32/0.77/0.71, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 129, time: 290.37/110.04, train_loss: 0.0354, val_loss: 0.0333, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/43.53/1.32/0.77/0.71, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 130, time: 288.40/110.04, train_loss: 0.0334, val_loss: 0.0333, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/43.53/1.32/0.77/0.71, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 131, time: 288.68/110.04, train_loss: 0.0344, val_loss: 0.0333, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/43.53/1.32/0.77/0.71, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 132, time: 289.50/110.04, train_loss: 0.0332, val_loss: 0.0333, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/43.53/1.32/0.77/0.71, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 133, time: 289.70/110.04, train_loss: 0.0328, val_loss: 0.0333, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/43.53/1.32/0.77/0.71, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 134, time: 286.38/110.04, train_loss: 0.0327, val_loss: 0.0333, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/43.53/1.32/0.77/0.71, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 135, time: 293.06/110.04, train_loss: 0.0331, val_loss: 0.0333, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/43.53/1.32/0.77/0.71, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 136, time: 288.17/110.04, train_loss: 0.0328, val_loss: 0.0333, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/43.53/1.32/0.77/0.71, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 137, time: 290.59/110.04, train_loss: 0.0337, val_loss: 0.0333, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/43.53/1.32/0.77/0.71, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 138, time: 292.10/110.04, train_loss: 0.0329, val_loss: 0.0333, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/43.53/1.32/0.77/0.71, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 139, time: 290.81/110.04, train_loss: 0.0322, val_loss: 0.0333, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/43.53/1.32/0.77/0.71, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 140, time: 287.60/110.04, train_loss: 0.0337, val_loss: 0.0333, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/43.53/1.32/0.77/0.71, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 141, time: 287.53/110.04, train_loss: 0.0322, val_loss: 0.0333, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/43.53/1.32/0.77/0.71, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 142, time: 290.97/110.04, train_loss: 0.0316, val_loss: 0.0333, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/43.53/1.32/0.77/0.71, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 143, time: 290.34/110.04, train_loss: 0.0323, val_loss: 0.0333, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/43.53/1.32/0.77/0.71, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 144, time: 291.58/110.04, train_loss: 0.0326, val_loss: 0.0333, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/43.53/1.32/0.77/0.71, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 145, time: 290.68/110.04, train_loss: 0.0316, val_loss: 0.0333, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/43.53/1.32/0.77/0.71, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 146, time: 294.07/110.04, train_loss: 0.0315, val_loss: 0.0333, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/43.53/1.32/0.77/0.71, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 147, time: 291.58/110.04, train_loss: 0.0374, val_loss: 0.0333, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/43.53/1.32/0.77/0.71, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 148, time: 288.97/110.04, train_loss: 0.0330, val_loss: 0.0333, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/43.53/1.32/0.77/0.71, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 149, time: 290.18/110.04, train_loss: 0.0318, val_loss: 0.0333, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/43.53/1.32/0.77/0.71, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 150, time: 289.07/112.76, train_loss: 0.0340, val_loss: 0.0450, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/42.03/1.32/0.84/0.73, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 151, time: 289.63/112.76, train_loss: 0.0332, val_loss: 0.0450, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/42.03/1.32/0.84/0.73, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 152, time: 292.76/112.76, train_loss: 0.0313, val_loss: 0.0450, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/42.03/1.32/0.84/0.73, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 153, time: 296.53/112.76, train_loss: 0.0308, val_loss: 0.0450, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/42.03/1.32/0.84/0.73, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 154, time: 300.07/112.76, train_loss: 0.0312, val_loss: 0.0450, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/42.03/1.32/0.84/0.73, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 155, time: 293.59/112.76, train_loss: 0.0317, val_loss: 0.0450, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/42.03/1.32/0.84/0.73, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 156, time: 292.35/112.76, train_loss: 0.0314, val_loss: 0.0450, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/42.03/1.32/0.84/0.73, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 157, time: 295.93/112.76, train_loss: 0.0308, val_loss: 0.0450, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/42.03/1.32/0.84/0.73, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 158, time: 299.28/112.76, train_loss: 0.0306, val_loss: 0.0450, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/42.03/1.32/0.84/0.73, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 159, time: 292.09/112.76, train_loss: 0.0316, val_loss: 0.0450, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/42.03/1.32/0.84/0.73, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 160, time: 294.39/112.76, train_loss: 0.0307, val_loss: 0.0450, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/42.03/1.32/0.84/0.73, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 161, time: 296.92/112.76, train_loss: 0.0305, val_loss: 0.0450, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/42.03/1.32/0.84/0.73, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 162, time: 298.16/112.76, train_loss: 0.0304, val_loss: 0.0450, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/42.03/1.32/0.84/0.73, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 163, time: 300.34/112.76, train_loss: 0.0304, val_loss: 0.0450, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/42.03/1.32/0.84/0.73, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 164, time: 292.00/112.76, train_loss: 0.0306, val_loss: 0.0450, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/42.03/1.32/0.84/0.73, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 165, time: 301.14/112.76, train_loss: 0.0302, val_loss: 0.0450, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/42.03/1.32/0.84/0.73, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 166, time: 296.99/112.76, train_loss: 0.0312, val_loss: 0.0450, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/42.03/1.32/0.84/0.73, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 167, time: 296.07/112.76, train_loss: 0.0302, val_loss: 0.0450, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/42.03/1.32/0.84/0.73, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 168, time: 298.73/112.76, train_loss: 0.0302, val_loss: 0.0450, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/42.03/1.32/0.84/0.73, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 169, time: 297.69/112.76, train_loss: 0.0295, val_loss: 0.0450, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/42.03/1.32/0.84/0.73, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 170, time: 295.40/112.76, train_loss: 0.0298, val_loss: 0.0450, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/42.03/1.32/0.84/0.73, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 171, time: 297.22/112.76, train_loss: 0.0298, val_loss: 0.0450, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/42.03/1.32/0.84/0.73, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 172, time: 292.72/112.76, train_loss: 0.0297, val_loss: 0.0450, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/42.03/1.32/0.84/0.73, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 173, time: 301.27/112.76, train_loss: 0.0300, val_loss: 0.0450, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/42.03/1.32/0.84/0.73, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 174, time: 293.95/112.76, train_loss: 0.0292, val_loss: 0.0450, F/AE/Dist_err/Rel_dist_err/SELD: 0.04/42.03/1.32/0.84/0.73, best_val_epoch: 125 (0.04/43.53/1.32/0.77/0.71)
+epoch: 175, time: 296.70/113.91, train_loss: 0.0293, val_loss: 0.0430, F/AE/Dist_err/Rel_dist_err/SELD: 0.05/43.84/1.63/0.91/0.70, best_val_epoch: 175 (0.05/43.84/1.63/0.91/0.70)
+epoch: 176, time: 294.66/113.91, train_loss: 0.0294, val_loss: 0.0430, F/AE/Dist_err/Rel_dist_err/SELD: 0.05/43.84/1.63/0.91/0.70, best_val_epoch: 175 (0.05/43.84/1.63/0.91/0.70)
+epoch: 177, time: 297.13/113.91, train_loss: 0.0292, val_loss: 0.0430, F/AE/Dist_err/Rel_dist_err/SELD: 0.05/43.84/1.63/0.91/0.70, best_val_epoch: 175 (0.05/43.84/1.63/0.91/0.70)
+epoch: 178, time: 297.93/113.91, train_loss: 0.0292, val_loss: 0.0430, F/AE/Dist_err/Rel_dist_err/SELD: 0.05/43.84/1.63/0.91/0.70, best_val_epoch: 175 (0.05/43.84/1.63/0.91/0.70)
+epoch: 179, time: 298.30/113.91, train_loss: 0.0290, val_loss: 0.0430, F/AE/Dist_err/Rel_dist_err/SELD: 0.05/43.84/1.63/0.91/0.70, best_val_epoch: 175 (0.05/43.84/1.63/0.91/0.70)
+epoch: 180, time: 302.59/113.91, train_loss: 0.0287, val_loss: 0.0430, F/AE/Dist_err/Rel_dist_err/SELD: 0.05/43.84/1.63/0.91/0.70, best_val_epoch: 175 (0.05/43.84/1.63/0.91/0.70)
+epoch: 181, time: 297.87/113.91, train_loss: 0.0292, val_loss: 0.0430, F/AE/Dist_err/Rel_dist_err/SELD: 0.05/43.84/1.63/0.91/0.70, best_val_epoch: 175 (0.05/43.84/1.63/0.91/0.70)
+epoch: 182, time: 293.07/113.91, train_loss: 0.0286, val_loss: 0.0430, F/AE/Dist_err/Rel_dist_err/SELD: 0.05/43.84/1.63/0.91/0.70, best_val_epoch: 175 (0.05/43.84/1.63/0.91/0.70)
+epoch: 183, time: 298.71/113.91, train_loss: 0.0282, val_loss: 0.0430, F/AE/Dist_err/Rel_dist_err/SELD: 0.05/43.84/1.63/0.91/0.70, best_val_epoch: 175 (0.05/43.84/1.63/0.91/0.70)
+epoch: 184, time: 299.68/113.91, train_loss: 0.0284, val_loss: 0.0430, F/AE/Dist_err/Rel_dist_err/SELD: 0.05/43.84/1.63/0.91/0.70, best_val_epoch: 175 (0.05/43.84/1.63/0.91/0.70)
+epoch: 185, time: 298.00/113.91, train_loss: 0.0281, val_loss: 0.0430, F/AE/Dist_err/Rel_dist_err/SELD: 0.05/43.84/1.63/0.91/0.70, best_val_epoch: 175 (0.05/43.84/1.63/0.91/0.70)
+epoch: 186, time: 298.32/113.91, train_loss: 0.0283, val_loss: 0.0430, F/AE/Dist_err/Rel_dist_err/SELD: 0.05/43.84/1.63/0.91/0.70, best_val_epoch: 175 (0.05/43.84/1.63/0.91/0.70)
+epoch: 187, time: 299.24/113.91, train_loss: 0.0282, val_loss: 0.0430, F/AE/Dist_err/Rel_dist_err/SELD: 0.05/43.84/1.63/0.91/0.70, best_val_epoch: 175 (0.05/43.84/1.63/0.91/0.70)
+epoch: 188, time: 294.80/113.91, train_loss: 0.0277, val_loss: 0.0430, F/AE/Dist_err/Rel_dist_err/SELD: 0.05/43.84/1.63/0.91/0.70, best_val_epoch: 175 (0.05/43.84/1.63/0.91/0.70)
+epoch: 189, time: 297.85/113.91, train_loss: 0.0278, val_loss: 0.0430, F/AE/Dist_err/Rel_dist_err/SELD: 0.05/43.84/1.63/0.91/0.70, best_val_epoch: 175 (0.05/43.84/1.63/0.91/0.70)
+epoch: 190, time: 295.90/113.91, train_loss: 0.0277, val_loss: 0.0430, F/AE/Dist_err/Rel_dist_err/SELD: 0.05/43.84/1.63/0.91/0.70, best_val_epoch: 175 (0.05/43.84/1.63/0.91/0.70)
+epoch: 191, time: 297.78/113.91, train_loss: 0.0274, val_loss: 0.0430, F/AE/Dist_err/Rel_dist_err/SELD: 0.05/43.84/1.63/0.91/0.70, best_val_epoch: 175 (0.05/43.84/1.63/0.91/0.70)
+epoch: 192, time: 295.09/113.91, train_loss: 0.0274, val_loss: 0.0430, F/AE/Dist_err/Rel_dist_err/SELD: 0.05/43.84/1.63/0.91/0.70, best_val_epoch: 175 (0.05/43.84/1.63/0.91/0.70)
+epoch: 193, time: 298.67/113.91, train_loss: 0.0279, val_loss: 0.0430, F/AE/Dist_err/Rel_dist_err/SELD: 0.05/43.84/1.63/0.91/0.70, best_val_epoch: 175 (0.05/43.84/1.63/0.91/0.70)
+epoch: 194, time: 297.50/113.91, train_loss: 0.0276, val_loss: 0.0430, F/AE/Dist_err/Rel_dist_err/SELD: 0.05/43.84/1.63/0.91/0.70, best_val_epoch: 175 (0.05/43.84/1.63/0.91/0.70)
+epoch: 195, time: 300.35/113.91, train_loss: 0.0266, val_loss: 0.0430, F/AE/Dist_err/Rel_dist_err/SELD: 0.05/43.84/1.63/0.91/0.70, best_val_epoch: 175 (0.05/43.84/1.63/0.91/0.70)
+epoch: 196, time: 296.76/113.91, train_loss: 0.0267, val_loss: 0.0430, F/AE/Dist_err/Rel_dist_err/SELD: 0.05/43.84/1.63/0.91/0.70, best_val_epoch: 175 (0.05/43.84/1.63/0.91/0.70)
+epoch: 197, time: 297.37/113.91, train_loss: 0.0268, val_loss: 0.0430, F/AE/Dist_err/Rel_dist_err/SELD: 0.05/43.84/1.63/0.91/0.70, best_val_epoch: 175 (0.05/43.84/1.63/0.91/0.70)
+epoch: 198, time: 292.92/113.91, train_loss: 0.0263, val_loss: 0.0430, F/AE/Dist_err/Rel_dist_err/SELD: 0.05/43.84/1.63/0.91/0.70, best_val_epoch: 175 (0.05/43.84/1.63/0.91/0.70)
+epoch: 199, time: 301.26/113.91, train_loss: 0.0263, val_loss: 0.0430, F/AE/Dist_err/Rel_dist_err/SELD: 0.05/43.84/1.63/0.91/0.70, best_val_epoch: 175 (0.05/43.84/1.63/0.91/0.70)
+epoch: 200, time: 297.06/114.57, train_loss: 0.0275, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.06/41.06/1.56/0.85/0.67, best_val_epoch: 200 (0.06/41.06/1.56/0.85/0.67)
+epoch: 201, time: 296.62/114.57, train_loss: 0.0272, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.06/41.06/1.56/0.85/0.67, best_val_epoch: 200 (0.06/41.06/1.56/0.85/0.67)
+epoch: 202, time: 297.79/114.57, train_loss: 0.0257, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.06/41.06/1.56/0.85/0.67, best_val_epoch: 200 (0.06/41.06/1.56/0.85/0.67)
+epoch: 203, time: 297.22/114.57, train_loss: 0.0256, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.06/41.06/1.56/0.85/0.67, best_val_epoch: 200 (0.06/41.06/1.56/0.85/0.67)
+epoch: 204, time: 295.80/114.57, train_loss: 0.0256, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.06/41.06/1.56/0.85/0.67, best_val_epoch: 200 (0.06/41.06/1.56/0.85/0.67)
+epoch: 205, time: 296.64/114.57, train_loss: 0.0253, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.06/41.06/1.56/0.85/0.67, best_val_epoch: 200 (0.06/41.06/1.56/0.85/0.67)
+epoch: 206, time: 294.97/114.57, train_loss: 0.0271, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.06/41.06/1.56/0.85/0.67, best_val_epoch: 200 (0.06/41.06/1.56/0.85/0.67)
+epoch: 207, time: 294.14/114.57, train_loss: 0.0255, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.06/41.06/1.56/0.85/0.67, best_val_epoch: 200 (0.06/41.06/1.56/0.85/0.67)
+epoch: 208, time: 294.49/114.57, train_loss: 0.0249, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.06/41.06/1.56/0.85/0.67, best_val_epoch: 200 (0.06/41.06/1.56/0.85/0.67)
+epoch: 209, time: 297.28/114.57, train_loss: 0.0249, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.06/41.06/1.56/0.85/0.67, best_val_epoch: 200 (0.06/41.06/1.56/0.85/0.67)
+epoch: 210, time: 298.02/114.57, train_loss: 0.0247, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.06/41.06/1.56/0.85/0.67, best_val_epoch: 200 (0.06/41.06/1.56/0.85/0.67)
+epoch: 211, time: 293.61/114.57, train_loss: 0.0248, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.06/41.06/1.56/0.85/0.67, best_val_epoch: 200 (0.06/41.06/1.56/0.85/0.67)
+epoch: 212, time: 297.09/114.57, train_loss: 0.0245, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.06/41.06/1.56/0.85/0.67, best_val_epoch: 200 (0.06/41.06/1.56/0.85/0.67)
+epoch: 213, time: 296.11/114.57, train_loss: 0.0245, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.06/41.06/1.56/0.85/0.67, best_val_epoch: 200 (0.06/41.06/1.56/0.85/0.67)
+epoch: 214, time: 293.53/114.57, train_loss: 0.0242, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.06/41.06/1.56/0.85/0.67, best_val_epoch: 200 (0.06/41.06/1.56/0.85/0.67)
+epoch: 215, time: 293.85/114.57, train_loss: 0.0243, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.06/41.06/1.56/0.85/0.67, best_val_epoch: 200 (0.06/41.06/1.56/0.85/0.67)
+epoch: 216, time: 297.09/114.57, train_loss: 0.0241, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.06/41.06/1.56/0.85/0.67, best_val_epoch: 200 (0.06/41.06/1.56/0.85/0.67)
+epoch: 217, time: 293.62/114.57, train_loss: 0.0240, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.06/41.06/1.56/0.85/0.67, best_val_epoch: 200 (0.06/41.06/1.56/0.85/0.67)
+epoch: 218, time: 297.51/114.57, train_loss: 0.0238, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.06/41.06/1.56/0.85/0.67, best_val_epoch: 200 (0.06/41.06/1.56/0.85/0.67)
+epoch: 219, time: 296.07/114.57, train_loss: 0.0244, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.06/41.06/1.56/0.85/0.67, best_val_epoch: 200 (0.06/41.06/1.56/0.85/0.67)
+epoch: 220, time: 295.26/114.57, train_loss: 0.0235, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.06/41.06/1.56/0.85/0.67, best_val_epoch: 200 (0.06/41.06/1.56/0.85/0.67)
+epoch: 221, time: 294.81/114.57, train_loss: 0.0234, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.06/41.06/1.56/0.85/0.67, best_val_epoch: 200 (0.06/41.06/1.56/0.85/0.67)
+epoch: 222, time: 293.45/114.57, train_loss: 0.0235, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.06/41.06/1.56/0.85/0.67, best_val_epoch: 200 (0.06/41.06/1.56/0.85/0.67)
+epoch: 223, time: 294.25/114.57, train_loss: 0.0233, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.06/41.06/1.56/0.85/0.67, best_val_epoch: 200 (0.06/41.06/1.56/0.85/0.67)
+epoch: 224, time: 298.61/114.57, train_loss: 0.0232, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.06/41.06/1.56/0.85/0.67, best_val_epoch: 200 (0.06/41.06/1.56/0.85/0.67)
+epoch: 225, time: 294.10/117.40, train_loss: 0.0231, val_loss: 0.0375, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/42.57/1.64/0.91/0.69, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 226, time: 291.64/117.40, train_loss: 0.0240, val_loss: 0.0375, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/42.57/1.64/0.91/0.69, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 227, time: 296.42/117.40, train_loss: 0.0232, val_loss: 0.0375, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/42.57/1.64/0.91/0.69, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 228, time: 293.75/117.40, train_loss: 0.0229, val_loss: 0.0375, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/42.57/1.64/0.91/0.69, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 229, time: 297.16/117.40, train_loss: 0.0227, val_loss: 0.0375, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/42.57/1.64/0.91/0.69, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 230, time: 294.65/117.40, train_loss: 0.0225, val_loss: 0.0375, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/42.57/1.64/0.91/0.69, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 231, time: 298.05/117.40, train_loss: 0.0226, val_loss: 0.0375, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/42.57/1.64/0.91/0.69, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 232, time: 293.81/117.40, train_loss: 0.0225, val_loss: 0.0375, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/42.57/1.64/0.91/0.69, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 233, time: 297.58/117.40, train_loss: 0.0223, val_loss: 0.0375, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/42.57/1.64/0.91/0.69, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 234, time: 289.84/117.40, train_loss: 0.0223, val_loss: 0.0375, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/42.57/1.64/0.91/0.69, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 235, time: 300.12/117.40, train_loss: 0.0224, val_loss: 0.0375, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/42.57/1.64/0.91/0.69, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 236, time: 291.13/117.40, train_loss: 0.0221, val_loss: 0.0375, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/42.57/1.64/0.91/0.69, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 237, time: 291.39/117.40, train_loss: 0.0225, val_loss: 0.0375, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/42.57/1.64/0.91/0.69, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 238, time: 294.14/117.40, train_loss: 0.0219, val_loss: 0.0375, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/42.57/1.64/0.91/0.69, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 239, time: 292.61/117.40, train_loss: 0.0219, val_loss: 0.0375, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/42.57/1.64/0.91/0.69, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 240, time: 296.74/117.40, train_loss: 0.0218, val_loss: 0.0375, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/42.57/1.64/0.91/0.69, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 241, time: 293.59/117.40, train_loss: 0.0218, val_loss: 0.0375, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/42.57/1.64/0.91/0.69, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 242, time: 290.99/117.40, train_loss: 0.0218, val_loss: 0.0375, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/42.57/1.64/0.91/0.69, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 243, time: 296.07/117.40, train_loss: 0.0218, val_loss: 0.0375, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/42.57/1.64/0.91/0.69, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 244, time: 294.74/117.40, train_loss: 0.0216, val_loss: 0.0375, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/42.57/1.64/0.91/0.69, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 245, time: 292.89/117.40, train_loss: 0.0216, val_loss: 0.0375, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/42.57/1.64/0.91/0.69, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 246, time: 296.59/117.40, train_loss: 0.0214, val_loss: 0.0375, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/42.57/1.64/0.91/0.69, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 247, time: 295.28/117.40, train_loss: 0.0214, val_loss: 0.0375, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/42.57/1.64/0.91/0.69, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 248, time: 294.00/117.40, train_loss: 0.0214, val_loss: 0.0375, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/42.57/1.64/0.91/0.69, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 249, time: 297.39/117.40, train_loss: 0.0213, val_loss: 0.0375, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/42.57/1.64/0.91/0.69, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 250, time: 294.08/117.80, train_loss: 0.0212, val_loss: 0.0403, F/AE/Dist_err/Rel_dist_err/SELD: 0.08/41.58/1.75/0.96/0.70, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 251, time: 289.57/117.80, train_loss: 0.0211, val_loss: 0.0403, F/AE/Dist_err/Rel_dist_err/SELD: 0.08/41.58/1.75/0.96/0.70, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 252, time: 295.44/117.80, train_loss: 0.0211, val_loss: 0.0403, F/AE/Dist_err/Rel_dist_err/SELD: 0.08/41.58/1.75/0.96/0.70, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 253, time: 295.52/117.80, train_loss: 0.0211, val_loss: 0.0403, F/AE/Dist_err/Rel_dist_err/SELD: 0.08/41.58/1.75/0.96/0.70, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 254, time: 295.73/117.80, train_loss: 0.0210, val_loss: 0.0403, F/AE/Dist_err/Rel_dist_err/SELD: 0.08/41.58/1.75/0.96/0.70, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 255, time: 296.08/117.80, train_loss: 0.0209, val_loss: 0.0403, F/AE/Dist_err/Rel_dist_err/SELD: 0.08/41.58/1.75/0.96/0.70, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 256, time: 295.64/117.80, train_loss: 0.0209, val_loss: 0.0403, F/AE/Dist_err/Rel_dist_err/SELD: 0.08/41.58/1.75/0.96/0.70, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 257, time: 291.02/117.80, train_loss: 0.0209, val_loss: 0.0403, F/AE/Dist_err/Rel_dist_err/SELD: 0.08/41.58/1.75/0.96/0.70, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 258, time: 298.47/117.80, train_loss: 0.0208, val_loss: 0.0403, F/AE/Dist_err/Rel_dist_err/SELD: 0.08/41.58/1.75/0.96/0.70, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 259, time: 296.70/117.80, train_loss: 0.0207, val_loss: 0.0403, F/AE/Dist_err/Rel_dist_err/SELD: 0.08/41.58/1.75/0.96/0.70, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 260, time: 296.56/117.80, train_loss: 0.0207, val_loss: 0.0403, F/AE/Dist_err/Rel_dist_err/SELD: 0.08/41.58/1.75/0.96/0.70, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 261, time: 302.35/117.80, train_loss: 0.0206, val_loss: 0.0403, F/AE/Dist_err/Rel_dist_err/SELD: 0.08/41.58/1.75/0.96/0.70, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 262, time: 298.16/117.80, train_loss: 0.0205, val_loss: 0.0403, F/AE/Dist_err/Rel_dist_err/SELD: 0.08/41.58/1.75/0.96/0.70, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 263, time: 302.30/117.80, train_loss: 0.0205, val_loss: 0.0403, F/AE/Dist_err/Rel_dist_err/SELD: 0.08/41.58/1.75/0.96/0.70, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 264, time: 296.22/117.80, train_loss: 0.0205, val_loss: 0.0403, F/AE/Dist_err/Rel_dist_err/SELD: 0.08/41.58/1.75/0.96/0.70, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 265, time: 298.37/117.80, train_loss: 0.0205, val_loss: 0.0403, F/AE/Dist_err/Rel_dist_err/SELD: 0.08/41.58/1.75/0.96/0.70, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 266, time: 296.70/117.80, train_loss: 0.0205, val_loss: 0.0403, F/AE/Dist_err/Rel_dist_err/SELD: 0.08/41.58/1.75/0.96/0.70, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 267, time: 301.07/117.80, train_loss: 0.0204, val_loss: 0.0403, F/AE/Dist_err/Rel_dist_err/SELD: 0.08/41.58/1.75/0.96/0.70, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 268, time: 299.37/117.80, train_loss: 0.0204, val_loss: 0.0403, F/AE/Dist_err/Rel_dist_err/SELD: 0.08/41.58/1.75/0.96/0.70, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 269, time: 297.34/117.80, train_loss: 0.0204, val_loss: 0.0403, F/AE/Dist_err/Rel_dist_err/SELD: 0.08/41.58/1.75/0.96/0.70, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 270, time: 301.59/117.80, train_loss: 0.0204, val_loss: 0.0403, F/AE/Dist_err/Rel_dist_err/SELD: 0.08/41.58/1.75/0.96/0.70, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 271, time: 296.67/117.80, train_loss: 0.0203, val_loss: 0.0403, F/AE/Dist_err/Rel_dist_err/SELD: 0.08/41.58/1.75/0.96/0.70, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 272, time: 298.69/117.80, train_loss: 0.0202, val_loss: 0.0403, F/AE/Dist_err/Rel_dist_err/SELD: 0.08/41.58/1.75/0.96/0.70, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 273, time: 293.77/117.80, train_loss: 0.0202, val_loss: 0.0403, F/AE/Dist_err/Rel_dist_err/SELD: 0.08/41.58/1.75/0.96/0.70, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 274, time: 293.72/117.80, train_loss: 0.0201, val_loss: 0.0403, F/AE/Dist_err/Rel_dist_err/SELD: 0.08/41.58/1.75/0.96/0.70, best_val_epoch: 225 (0.09/42.57/1.64/0.91/0.69)
+epoch: 275, time: 296.15/119.31, train_loss: 0.0202, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/41.18/1.67/0.95/0.69, best_val_epoch: 275 (0.09/41.18/1.67/0.95/0.69)
+epoch: 276, time: 215.67/119.31, train_loss: 0.0201, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/41.18/1.67/0.95/0.69, best_val_epoch: 275 (0.09/41.18/1.67/0.95/0.69)
+epoch: 277, time: 186.30/119.31, train_loss: 0.0201, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/41.18/1.67/0.95/0.69, best_val_epoch: 275 (0.09/41.18/1.67/0.95/0.69)
+epoch: 278, time: 181.92/119.31, train_loss: 0.0201, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/41.18/1.67/0.95/0.69, best_val_epoch: 275 (0.09/41.18/1.67/0.95/0.69)
+epoch: 279, time: 180.67/119.31, train_loss: 0.0200, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/41.18/1.67/0.95/0.69, best_val_epoch: 275 (0.09/41.18/1.67/0.95/0.69)
+epoch: 280, time: 185.03/119.31, train_loss: 0.0200, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/41.18/1.67/0.95/0.69, best_val_epoch: 275 (0.09/41.18/1.67/0.95/0.69)
+epoch: 281, time: 183.01/119.31, train_loss: 0.0200, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/41.18/1.67/0.95/0.69, best_val_epoch: 275 (0.09/41.18/1.67/0.95/0.69)
+epoch: 282, time: 181.85/119.31, train_loss: 0.0199, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/41.18/1.67/0.95/0.69, best_val_epoch: 275 (0.09/41.18/1.67/0.95/0.69)
+epoch: 283, time: 183.80/119.31, train_loss: 0.0199, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/41.18/1.67/0.95/0.69, best_val_epoch: 275 (0.09/41.18/1.67/0.95/0.69)
+epoch: 284, time: 187.31/119.31, train_loss: 0.0200, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/41.18/1.67/0.95/0.69, best_val_epoch: 275 (0.09/41.18/1.67/0.95/0.69)
+epoch: 285, time: 184.34/119.31, train_loss: 0.0199, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/41.18/1.67/0.95/0.69, best_val_epoch: 275 (0.09/41.18/1.67/0.95/0.69)
+epoch: 286, time: 183.11/119.31, train_loss: 0.0198, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/41.18/1.67/0.95/0.69, best_val_epoch: 275 (0.09/41.18/1.67/0.95/0.69)
+epoch: 287, time: 182.95/119.31, train_loss: 0.0198, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/41.18/1.67/0.95/0.69, best_val_epoch: 275 (0.09/41.18/1.67/0.95/0.69)
+epoch: 288, time: 183.47/119.31, train_loss: 0.0198, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/41.18/1.67/0.95/0.69, best_val_epoch: 275 (0.09/41.18/1.67/0.95/0.69)
+epoch: 289, time: 185.28/119.31, train_loss: 0.0198, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/41.18/1.67/0.95/0.69, best_val_epoch: 275 (0.09/41.18/1.67/0.95/0.69)
+epoch: 290, time: 184.75/119.31, train_loss: 0.0198, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/41.18/1.67/0.95/0.69, best_val_epoch: 275 (0.09/41.18/1.67/0.95/0.69)
+epoch: 291, time: 182.56/119.31, train_loss: 0.0198, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/41.18/1.67/0.95/0.69, best_val_epoch: 275 (0.09/41.18/1.67/0.95/0.69)
+epoch: 292, time: 182.91/119.31, train_loss: 0.0198, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/41.18/1.67/0.95/0.69, best_val_epoch: 275 (0.09/41.18/1.67/0.95/0.69)
+epoch: 293, time: 178.90/119.31, train_loss: 0.0198, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/41.18/1.67/0.95/0.69, best_val_epoch: 275 (0.09/41.18/1.67/0.95/0.69)
+epoch: 294, time: 179.78/119.31, train_loss: 0.0198, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/41.18/1.67/0.95/0.69, best_val_epoch: 275 (0.09/41.18/1.67/0.95/0.69)
+epoch: 295, time: 179.93/119.31, train_loss: 0.0197, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/41.18/1.67/0.95/0.69, best_val_epoch: 275 (0.09/41.18/1.67/0.95/0.69)
+epoch: 296, time: 179.91/119.31, train_loss: 0.0197, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/41.18/1.67/0.95/0.69, best_val_epoch: 275 (0.09/41.18/1.67/0.95/0.69)
+epoch: 297, time: 181.19/119.31, train_loss: 0.0197, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/41.18/1.67/0.95/0.69, best_val_epoch: 275 (0.09/41.18/1.67/0.95/0.69)
+epoch: 298, time: 183.53/119.31, train_loss: 0.0197, val_loss: 0.0391, F/AE/Dist_err/Rel_dist_err/SELD: 0.09/41.18/1.67/0.95/0.69, best_val_epoch: 275 (0.09/41.18/1.67/0.95/0.69)
+saving final model
+epoch: 299, time: 181.34/110.25, train_loss: 0.0197, val_loss: 0.0424, F/AE/Dist_err/Rel_dist_err/SELD: 0.08/42.14/1.70/0.97/0.71, best_val_epoch: 275 (0.09/41.18/1.67/0.95/0.69)
+Not loading best model weights, using final model weights instead
+Loading unseen test dataset:
+Dumping recording-wise test results in: results_audio/6_workshop-baseline-gccphat-300-aug-seed0_dev_split0_multiaccdoa_mic_gcc_20240620132833_test
+SELD score (early stopping metric): 0.71 [0.65, 0.80]
+SED metrics: F-score: 8.2 [6.15, 10.59]
+DOA metrics: Angular error: 42.3 [35.20 , 48.71]
+Distance metrics: 1.72 [1.47 , 2.17]
+Relative Distance metrics: 0.97 [0.82 , 1.36]
+Classwise results on unseen test data
+Class	F	AE	dist_err	reldist_err	SELD_score
+0	0.23 [0.14, 0.32]	23.69 [20.01, 27.43]	1.54 [1.22, 1.84]	1.03 [0.79, 1.28]	0.64 [0.54, 0.76]
+1	0.24 [0.16, 0.32]	22.64 [19.73, 25.13]	1.53 [1.21, 1.88]	1.02 [0.76, 1.33]	0.64 [0.52, 0.76]
+2	0.11 [-0.07, 0.29]	36.70 [23.36, 48.37]	1.73 [1.12, 2.32]	1.21 [0.55, 1.85]	0.77 [0.48, 1.04]
+3	0.00 [0.00, 0.00]	34.16 [nan, nan]	2.80 [nan, nan]	2.12 [nan, nan]	1.10 [1.00, 1.41]
+4	0.04 [0.01, 0.07]	29.42 [24.25, 34.29]	1.83 [1.51, 2.17]	1.07 [0.88, 1.27]	0.73 [0.67, 0.80]
+5	0.17 [0.06, 0.28]	30.98 [22.93, 38.83]	2.00 [1.37, 2.64]	1.10 [0.58, 1.63]	0.70 [0.49, 0.91]
+6	0.00 [0.00, 0.00]	56.18 [53.82, 58.77]	1.42 [1.08, 1.77]	0.77 [0.58, 0.99]	0.70 [0.63, 0.77]
+7	0.02 [-0.01, 0.04]	47.06 [20.94, 71.41]	1.54 [0.12, 2.94]	0.30 [0.11, 0.49]	0.51 [0.46, 0.56]
+8	0.02 [-0.00, 0.10]	44.18 [29.74, 51.86]	1.45 [0.97, 1.69]	1.02 [0.60, 1.22]	0.75 [0.57, 0.82]
+9	0.03 [0.00, 0.06]	32.32 [29.31, 37.13]	1.51 [1.20, 1.88]	1.15 [0.87, 1.45]	0.77 [0.67, 0.87]
+10	0.10 [-0.02, 0.23]	29.42 [20.74, 39.19]	1.01 [0.80, 1.24]	0.36 [0.27, 0.45]	0.48 [0.41, 0.54]
+11	0.00 [0.00, 0.00]	120.82 [68.30, 190.42]	1.65 [-0.46, 4.42]	1.06 [-0.58, 3.22]	0.91 [0.27, 1.76]
+12	0.11 [-0.03, 0.23]	42.70 [14.58, 69.06]	2.30 [1.43, 3.09]	0.46 [0.31, 0.68]	0.53 [0.42, 0.66]
