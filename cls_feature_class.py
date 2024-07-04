@@ -700,28 +700,6 @@ class FeatureClass:
                     output_dict[frame_idx][class_idx][new_track_idx] = localization
 
         return output_dict
-    
-    # def organize_and_smooth_labels(self, _pred_dict, _max_frames):
-    #     '''
-    #         Collects class-wise sound event location information in every frame, similar to segment_labels but at frame level
-    #     :param _pred_dict: Dictionary containing frame-wise sound event time and location information. Output of SELD method
-    #     :param _max_frames: Total number of frames in the recording
-    #     :return: Dictionary containing class-wise sound event location information in each frame
-    #             dictionary_name[frame-index][class-index][track-index] = [azimuth, elevation, (distance)]
-    #     '''
-    #     filt_len = 10
-    #     nb_frames = _max_frames
-    #     output_dict = {x: {} for x in range(nb_frames)}
-    #     for frame_idx in range(0, _max_frames):
-    #         if frame_idx not in _pred_dict:
-    #             continue
-    #         for [class_idx, track_idx, az, el, *dist] in _pred_dict[frame_idx]:
-    #             if class_idx not in output_dict[frame_idx]:
-    #                 output_dict[frame_idx][class_idx] = {}
-    #             # assert track_idx not in output_dict[frame_idx][class_idx]  # I don't know why sometimes this happens... they seem to be repeated DOAs # TODO: Is this still happening?
-    #             output_dict[frame_idx][class_idx][track_idx] = [az, el] + dist
-
-    #     return output_dict
 
     def regression_label_format_to_output_format(self, _sed_labels, _doa_labels):
         """
