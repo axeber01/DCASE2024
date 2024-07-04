@@ -11,19 +11,12 @@ def get_params(argv='1'):
         quick_test=False,  # To do quick test. Trains/test on small subset of dataset, and # of epochs
 
         finetune_mode=False,  # Finetune on existing model, requires the pretrained model path set - pretrained_model_weights
-        #pretrained_model_weights='3_1_dev_split0_multiaccdoa_foa_model.h5',
 
         # INPUT PATH
-        #dataset_dir='./data_2024/',  # Base folder containing the foa/mic and metadata folders
-        #dataset_dir='./sim_20_rooms/',
-        #dataset_dir='./data_2024_soundq_aug/',
-        dataset_dir='./data_2024_soundq_aug_with4',
+        dataset_dir='./data_2024/',  # Base folder containing the foa/mic and metadata folders
 
         # OUTPUT PATHS
-        #feat_label_dir='./data_2024/seld_feat_label/',  # Directory to dump extracted features and labels
-        #feat_label_dir='./sim_20_rooms/seld_feat_label/',
-        #feat_label_dir='./data_2024_soundq_aug/seld_feat_label/',
-        feat_label_dir='./data_2024_soundq_aug_with4/seld_feat_label/',
+        feat_label_dir='./data_2024/seld_feat_label/',  # Directory to dump extracted features and labels
 
         model_dir='models',  # Dumps the trained models and training curves in this folder
         dcase_output_dir='results',  # recording-wise results are dumped in this path.
@@ -63,24 +56,20 @@ def get_params(argv='1'):
         nb_heads=8,
         nb_self_attn_layers=2,
         nb_transformer_layers=2,
-
         nb_rnn_layers=2,
         rnn_size=128,
-
         nb_fnn_layers=1,
         fnn_size=128,  # FNN contents, length of list = number of layers, list value = number of nodes
 
-        nb_epochs=175,  # Train for maximum epochs
+        nb_epochs=300,  # Train for maximum epochs
         eval_freq=25, # evaluate every x epochs
         lr=1e-3,
         final_lr=1e-5, # final learning rate in cosine scheduler
         weight_decay=0.05,
-        specaugment=False,
-        augment=False,
         predict_tdoa=False,
         warmup=5, #number of warmup epochs
-        relative_dist = True,
-        no_dist = False,
+        relative_dist = True, # scales MSE loss with 1/d
+        no_dist = False, # removes distance from loss, can be used if we don't want to perform distance estimation
 
         # METRIC
         average='macro',                 # Supports 'micro': sample-wise average and 'macro': class-wise average,
@@ -142,26 +131,18 @@ def get_params(argv='1'):
 
     elif argv == '6':
         print("MIC + GCC + multi ACCDOA\n")
-        params['pretrained_model_weights'] = '6_1_dev_split0_multiaccdoa_mic_gcc_model.h5'
         params['quick_test'] = False
         params['dataset'] = 'mic'
         params['use_salsalite'] = False
         params['multi_accdoa'] = True
         params['n_mics'] = 4
-        #params['batch_size'] = 1024
-        #params['eval_batch_size'] = 1024
-        params['predict_tdoa'] = False
-        params['augment'] = False
 
-    elif argv == '8':
-        print("RAW AUDIO CHUNKS + multi ACCDOA\n")
-        params['raw_chunks'] = True
-        params['pretrained_model_weights'] = 'blah.h5'
+    elif argv == '7':
+        print("MIC + SALSA + multi ACCDOA\n")
         params['quick_test'] = False
         params['dataset'] = 'mic'
-        params['use_salsalite'] = False
+        params['use_salsalite'] = True
         params['multi_accdoa'] = True
-        params['n_mics'] = 4
 
     elif argv == '9': # TDOA pre-training
         print("RAW AUDIO CHUNKS w/ NGCC model + multi ACCDOA, TDOA-pretraining\n")
@@ -185,16 +166,15 @@ def get_params(argv='1'):
         params['max_tau'] = 6
         params['tracks'] = 3
         params['fixed_tdoa'] = False
-        params['augment'] = False
         params['batch_size'] = 32
         params['lr'] = 1e-4
         params['warmup'] = 0
 
     elif argv == '10': # fine-tuning from tdoa-pretrained model
         print("RAW AUDIO CHUNKS w/ NGCC model + multi ACCDOA, pre-trained TDOA features\n")
-        params['finetune_mode'] = True#True
+        params['finetune_mode'] = True
         params['raw_chunks'] = True
-        params['pretrained_model_weights'] = 'models_audio/9_ngccphat-6delays-tdoa_dev_split0_multiaccdoa_mic_gcc_model_final.h5'
+        params['pretrained_model_weights'] = 'models/9_tdoa-3tracks-16channels.h5'
         params['quick_test'] = False
         params['dataset'] = 'mic'
         params['use_salsalite'] = False
@@ -205,15 +185,12 @@ def get_params(argv='1'):
         params['ngcc_out_channels'] = 16
         params['saved_chunks'] = True
         params['use_mel'] = True
-        #params['nb_epochs'] = 1000
-        #params['eval_freq'] = 25
 
         params['predict_tdoa'] = False
         params['lambda'] = 0.0 # set to 1.0 to only train tdoa, and 0.0 to only train SELD
         params['max_tau'] = 6
         params['tracks'] = 3
         params['fixed_tdoa'] = True
-        params['augment'] = False
 
 
     elif argv == '32':
@@ -229,7 +206,6 @@ def get_params(argv='1'):
 
         params["f_pool_size"] = [2, 2, 1]
         params['t_pool_size'] = [params['feature_label_resolution'], 1, 1]
-        params['batch_size'] = 64
         params['fnn_size'] = 256
 
     elif argv == '33':
@@ -245,7 +221,6 @@ def get_params(argv='1'):
 
         params["f_pool_size"] = [1,2,2] 
         params['t_pool_size'] = [1,1, params['feature_label_resolution']]
-        params['batch_size'] = 64
         params['nb_fnn_layers'] = 1
         params['fnn_size'] = 256
         params['nb_channels'] = 10
@@ -264,7 +239,6 @@ def get_params(argv='1'):
 
         params["f_pool_size"] = [1,4,6]
         params['t_pool_size'] = [1,1, params['feature_label_resolution']]
-        params['batch_size'] = 64
         params['nb_fnn_layers'] = 1
         params['fnn_size'] = 256
 
@@ -280,22 +254,14 @@ def get_params(argv='1'):
         params['ChAtten_ULE'] = True
         params['CMT_block'] = True
 
-        params["f_pool_size"] = [1,2,2]
+        params["f_pool_size"] = [1,2,2] # change to [1, 1, 1] to use the "Large" version
         params['t_pool_size'] = [1,1, params['feature_label_resolution']]
-        params['batch_size'] = 64
         params['nb_fnn_layers'] = 1
         params['fnn_size'] = 256
 
-        params['finetune_mode'] = True#True
+        params['finetune_mode'] = True
         params['raw_chunks'] = True
-        #params['pretrained_model_weights'] = 'models_audio/9_ngccphat-6delays-tdoa_dev_split0_multiaccdoa_mic_gcc_model_final.h5'
-        #params['pretrained_model_weights'] = 'models_audio/9_tdoa-1event-new_dev_split0_multiaccdoa_mic_gcc_model_final.h5'
-        #params['pretrained_model_weights'] = 'models_audio/9_tdoa-2event-new_dev_split0_multiaccdoa_mic_gcc_model_final.h5'
-        #params['pretrained_model_weights'] = 'models_audio/9_tdoa-3event-new_dev_split0_multiaccdoa_mic_gcc_model_final.h5'
-        #params['pretrained_model_weights'] = 'models_audio/9_tdoa-3event-new-1outchannel_dev_split0_multiaccdoa_mic_gcc_model_final.h5'
-        #params['pretrained_model_weights'] = 'models_audio/9_tdoa-3event-new-4outchannel_dev_split0_multiaccdoa_mic_gcc_model_final.h5'
-        #params['pretrained_model_weights'] = 'models_audio/9_tdoa-1event-fixed-repeat_dev_split0_multiaccdoa_mic_gcc_model_final.h5'
-        params['pretrained_model_weights'] = 'models_audio/9_tdoa-3event-fixed-repeat_dev_split0_multiaccdoa_mic_gcc_model_final.h5' 
+        params['pretrained_model_weights'] = 'models/9_tdoa-3tracks-16channels.h5' 
         params['dataset'] = 'mic'
         params['n_mics'] = 4
         params['ngcc_channels'] = 32
@@ -303,27 +269,12 @@ def get_params(argv='1'):
         params['saved_chunks'] = True
         params['use_mel'] = True
         params['use_mfcc'] = False
-        #params['nb_epochs'] = 1000
-        #params['eval_freq'] = 25
 
         params['predict_tdoa'] = False
         params['lambda'] = 0.0 # set to 1.0 to only train tdoa, and 0.0 to only train SELD
         params['max_tau'] = 6
         params['tracks'] = 3
         params['fixed_tdoa'] = True
-        params['augment'] = False
-
-        if params['mode'] == 'eval':
-            params['pretrained_model_weights'] = 'models_audio/333_cst-3event-repeat-300-aug-wd05_dev_split0_multiaccdoa_mic_gcc_model_final.h5'
-
-
-
-    elif argv == '7':
-        print("MIC + SALSA + multi ACCDOA\n")
-        params['quick_test'] = False
-        params['dataset'] = 'mic'
-        params['use_salsalite'] = True
-        params['multi_accdoa'] = True
 
     elif argv == '999':
         print("QUICK TEST MODE\n")
@@ -333,8 +284,6 @@ def get_params(argv='1'):
         print('ERROR: unknown argument {}'.format(argv))
         exit()
 
-    #params['feature_label_resolution'] = int(params['label_hop_len_s'] // params['hop_len_s'])
-    #params['feature_sequence_length'] = params['label_sequence_length'] * params['feature_label_resolution']
     if params['dataset'] == 'mic':
         if params['use_ngcc']:
             if params['use_mel']:

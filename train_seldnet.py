@@ -22,7 +22,6 @@ from SELD_evaluation_metrics import distance_between_cartesian_coordinates
 import seldnet_model 
 from model import NGCCModel
 from speechbrain.nnet.losses import PitWrapper 
-from torch_audiomentations import AddColoredNoise
 from cst_former.CST_former_model import CST_former
 from torchinfo import summary
 from warmup_scheduler import GradualWarmupScheduler
@@ -68,16 +67,6 @@ def get_model_and_sizes(params, data_gen, device):
     
     return model, data_in, vid_data_in, data_out
 
-def scramble(a, axis=-1):
-    """
-    Return an array with the values of `a` independently shuffled along the
-    given axis
-    """ 
-    b = a.swapaxes(axis, -1)
-    n = a.shape[axis]
-    idx = np.random.choice(n, n, replace=False)
-    b = b[..., idx]
-    return b.swapaxes(axis, -1)
 
 def deg2rad(deg):
     return deg * 2 * np.pi / 360
@@ -559,13 +548,6 @@ def train_epoch(data_generator, optimizer, model, criterion, params, device, cri
     nb_train_batches, train_loss = 0, 0.
     model.train()
 
-    train_transform = torch.nn.Sequential(
-            torchaudio.transforms.FrequencyMasking(7, iid_masks=True),
-            torchaudio.transforms.FrequencyMasking(7, iid_masks=True),
-    )
-
-    augment = AddColoredNoise(p=1.0, min_snr_in_db=5, max_snr_in_db=30, sample_rate=params['fs'], mode="per_channel", p_mode="per_channel")           
-
     tdoa_loss_ma = -1
     tdoa_acc_ma = -1
     for values in data_generator.generate():
@@ -573,15 +555,6 @@ def train_epoch(data_generator, optimizer, model, criterion, params, device, cri
         if len(values) == 2:
             data, target = values
             data, target = torch.tensor(data).to(device).float(), torch.tensor(target).to(device).float()
-            if params['specaugment'] and not params['raw_chunks']:
-                spec = data[:, :params['n_mics']].permute(0, 1, 3, 2)
-                data[:, :params['n_mics']] = train_transform(spec).permute(0, 1, 3, 2)
-            
-            if params['augment'] and params['raw_chunks']:
-                B, C, T, L = data.shape
-                data = data.permute(0, 2, 1, 3).reshape(-1, C, L)
-                data = augment(data)
-                data = data.reshape(B, T, C, L).permute(0, 2, 1, 3)
             
             optimizer.zero_grad()
             if criterion_tdoa is not None:
@@ -591,16 +564,6 @@ def train_epoch(data_generator, optimizer, model, criterion, params, device, cri
         elif len(values) == 3:
             data, vid_feat, target = values
             data, vid_feat, target = torch.tensor(data).to(device).float(), torch.tensor(vid_feat).to(device).float(), torch.tensor(target).to(device).float()
-            
-            if params['specaugment'] and not params['raw_chunks']:
-                spec = data[:, :params['n_mics']].permute(0, 1, 3, 2)
-                data[:, :params['n_mics']] = train_transform(spec).permute(0, 1, 3, 2)
-
-            if params['augment'] and params['raw_chunks']:
-                B, C, T, L = data.shape
-                data = data.permute(0, 2, 1, 3).reshape(-1, C, L)
-                data = augment(data)
-                data = data.reshape(B, T, C, L).permute(0, 2, 1, 3)
 
             optimizer.zero_grad()
             output = model(data, vid_feat)
@@ -713,18 +676,9 @@ def main(argv):
             val_splits = [[4]]
             train_splits = [[1, 2, 3]] 
         elif '2024' in params['dataset_dir']:
-            if 'with4' in params['dataset_dir']:
-                test_splits = [[2]]
-                val_splits = [[2]]
-                train_splits = [[1, 2, 3, 4, 9]]# [[1, 2, 3, 9]] # split 1 and 2 are simulated data, 3 and 4 are real recordings, 9 is extra simulated with rare classes
-            elif 'soundq' in params['dataset_dir']:
-                test_splits = [[4]]
-                val_splits = [[4]]
-                train_splits = [[1, 2, 3, 9]]
-            else:
-                test_splits = [[4]]
-                val_splits = [[4]]
-                train_splits = [[1, 2, 3, 9]]
+            test_splits = [[4]]
+            val_splits = [[4]]
+            train_splits = [[3]]# add split 1 and 2 to training, if you have downloaded simulated data
 
         else:
             log_string('ERROR: Unknown dataset splits')
@@ -797,7 +751,7 @@ def main(argv):
             log_string('Dumping recording-wise val results in: {}'.format(dcase_output_val_folder))
 
             if params['predict_tdoa']:
-                criterion_tdoa = TdoaLoss(fs=params['fs'], max_tau=params['max_tau'], tracks=params['tracks'])# max_events=params['max_events'])
+                criterion_tdoa = TdoaLoss(fs=params['fs'], max_tau=params['max_tau'], tracks=params['tracks'])
             else:
                 criterion_tdoa = None
             
@@ -847,8 +801,6 @@ def main(argv):
                 # Evaluate on unseen test data
                 # ---------------------------------------------------------------------
                 start_time = time.time()
-                #device = torch.device('cuda')
-                #model = model.to(device)
                 train_loss = train_epoch(data_gen_train, optimizer, model, criterion, params, device, criterion_tdoa)
                 scheduler.step()
                 train_time = time.time() - start_time
