@@ -135,7 +135,9 @@ class TdoaLoss(nn.Module):
             for t in range(T):
                 tr_cnt = 0 # the track counter keeps track of the # of active events
                 for tr in range(self.max_events):
-                    for c in range(C):
+                    classes = list(range(C))
+                    random.shuffle(classes) # randomly loop over classes in order to pick 3 events randomly
+                    for c in range(classes):
                         if tr_cnt >= self.max_events:
                             break
                         active = target[b, t, tr, 0, c]
