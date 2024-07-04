@@ -1,6 +1,8 @@
 # Sound Event Localization and Detection using Multi-Target TDOA Features
 
-This repository implements the audio-only part of our DCASE 2024 challenge submission. 
+![](seld-ngcc.png)
+
+This repository implements the audio-only part of our [DCASE 2024 challenge submission](https://dcase.community/documents/challenge2024/technical_reports/DCASE2024_Berg_24_t3.pdf). 
 
 ```
 @techreport{Berg_LU_task3_report,
